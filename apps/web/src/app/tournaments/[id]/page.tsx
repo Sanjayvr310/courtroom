@@ -8,6 +8,7 @@ import { getMatchesForCategory, StoredMatch } from "@/lib/match-store";
 
 // ─── Bracket types ────────────────────────────────────────────────────────────
 interface BracketSlot { label: string; isBye: boolean; seed: number; groupIdx?: number; }
+
 interface BracketMatch { id: string; round: number; matchNum: number; slot1: BracketSlot; slot2: BracketSlot; }
 
 interface SavedTeam {
@@ -129,6 +130,8 @@ function WimbledonBracket({
           const cardGap = BASE_GAP_Y * factor + CARD_H * (factor - 1);
           const topOffset = (factor - 1) * (CARD_H + BASE_GAP_Y) / 2;
           return rMatches.map((match, idx) => {
+            // Skip phantom BYE-vs-BYE padding matches
+            if (match.slot1.isBye && match.slot2.isBye) return null;
             const x = round * (CARD_W + GAP_X);
             const y = topOffset + idx * (CARD_H + cardGap) + 28;
             const centerY = y + CARD_H / 2;

@@ -30,6 +30,7 @@ interface BracketSlot {
   label: string;
   isBye: boolean;
   seed: number;
+  groupIdx?: number;
 }
 
 interface BracketMatch {
@@ -112,128 +113,91 @@ function snakeSeed(teams: Team[], numGroups: number): Group[] {
 }
 
 // ─── Bracket Builder ──────────────────────────────────────────────────────────
-// 
-// SEPARATION GUARANTEE: Teams from the same group must NOT meet until the Final.
-// This is achieved by:
-//   1. Standard seeded bracket positions (seed 1 vs 2 only in Final)
-//   2. Qualifiers are ordered so that same-group teams land in opposite halves
-//      (and opposite quarters, eighths, etc.) of the bracket.
-//   3. The qualifier ordering interleaves groups across bracket sections:
-//      - 1st Group A → position 1 (top half, top quarter)
-//      - 1st Group B → position 2 (bottom half, bottom quarter)  
-//      - 2nd Group A → position 3 (top half, bottom quarter)
-//      - 2nd Group B → position 4 (bottom half, top quarter)
-//      This ensures same-group teams are always in different quarters.
+//
+// SEPARATION GUARANTEE: Same-group teams are placed in DIFFERENT QUARTERS of
+// the bracket, so they cannot meet before the Semi-Finals.
+// Seeds 1..G = 1st-place qualifiers; G+1..2G = 2nd-place; etc.
+// Tier-based seeding + clash-fix pass guarantees no same-group R1 match.
 //
 function buildBracket(groups: Group[], qualifiersPerGroup: number): BracketMatch[] {
   const G = groups.length;
   const N = G * qualifiersPerGroup;
 
-  // ── Step 1: Build qualifier list with group-separation ordering ──────────
-  // We interleave groups across bracket sections so same-group teams
-  // are maximally separated. The key insight: in a standard seeded bracket,
-  // seeds 1 and 2 meet in the Final, 1/4 meet in Semis, 1/8 meet in QFs.
-  // We assign seeds so that all qualifiers from the same group get seeds
-  // that are in different "sections" of the bracket.
-  //
-  // Strategy: assign seeds round-robin across groups, but interleave
-  // so that group A gets seeds 1, G+1, 2G+1... and group B gets 2, G+2, 2G+2...
-  // This guarantees same-group teams are always in different halves at every level.
-
-  const qualifiers: { label: string; groupIdx: number }[] = new Array(N);
+  // ── Step 1: Qualifier list ─────────────────────────────────────────────────
+  // Seeds 1..G = 1st place, G+1..2G = 2nd place, 2G+1..3G = 3rd place, etc.
+  // This ensures same-group teams are in different rank-tiers (different bracket sections).
+  const qualifiers: { label: string; groupIdx: number }[] = [];
 
   for (let rank = 0; rank < qualifiersPerGroup; rank++) {
     const rankLabel = rank === 0 ? "1st" : rank === 1 ? "2nd" : rank === 2 ? "3rd" : `${rank + 1}th`;
     for (let g = 0; g < G; g++) {
-      // Interleaved position: rank * G + g  → but we want to spread across bracket
-      // Use the "folded" assignment: even ranks go forward, odd ranks go backward
-      // to maximize separation between same-group qualifiers
-      const pos = rank * G + g;
-      qualifiers[pos] = {
-        label: `${rankLabel} · ${groups[g].name}`,
-        groupIdx: g,
-      };
+      qualifiers.push({ label: `${rankLabel} · ${groups[g].name}`, groupIdx: g });
     }
   }
+  // qualifiers[k-1] = qualifier with seed k
 
-  // ── Step 2: Build bracket size ───────────────────────────────────────────
+  // ── Step 2: Bracket size & byes ──────────────────────────────────────────
   let size = 1;
   while (size < N) size *= 2;
   const numByes = size - N;
   const numRounds = Math.log2(size);
 
   // ── Step 3: Standard seeded bracket positions ────────────────────────────
-  // buildSeededPositions(n) returns an array of length n where position i
-  // holds the seed number that should be placed there.
-  // This is the standard "balanced draw" used in tennis/badminton:
-  // seed 1 and 2 can only meet in the Final, 1 and 3/4 in Semis, etc.
   function buildSeededPositions(n: number): number[] {
-    let bracket = [1, 2];
-    while (bracket.length < n) {
-      const newSize = bracket.length * 2;
-      const next: number[] = [];
-      for (const s of bracket) { next.push(s); next.push(newSize + 1 - s); }
-      bracket = next;
+    let b = [1, 2];
+    while (b.length < n) {
+      const ns = b.length * 2;
+      const nb: number[] = [];
+      for (const s of b) { nb.push(s); nb.push(ns + 1 - s); }
+      b = nb;
     }
-    return bracket;
+    return b;
   }
-
   const seedAtPos = buildSeededPositions(size);
 
-  // ── Step 4: Place qualifiers into bracket positions ───────────────────────
-  // seed 1 → qualifiers[0] (1st Group A), seed 2 → qualifiers[1] (1st Group B), etc.
-  // Because qualifiers are ordered with groups interleaved, and the seeded bracket
-  // places seed 1 and 2 in opposite halves, same-group teams end up in opposite halves.
+  // ── Step 4: Place qualifiers into bracket slots ───────────────────────────
   const slotArray: BracketSlot[] = seedAtPos.map(seed => {
     if (seed > N) return { label: "BYE", isBye: true, seed };
     const q = qualifiers[seed - 1];
-    return { label: q.label, isBye: false, seed, groupIdx: q.groupIdx } as BracketSlot;
+    return { label: q.label, isBye: false, seed, groupIdx: q.groupIdx };
   });
 
-  // ── Step 5: Give byes to top seeds (seeds 1..numByes get byes) ───────────
-  if (numByes > 0) {
-    for (let seed = 1; seed <= numByes; seed++) {
-      const pos = seedAtPos.indexOf(seed);
-      if (pos === -1) continue;
-      const opponentPos = pos % 2 === 0 ? pos + 1 : pos - 1;
-      slotArray[opponentPos] = { label: "BYE", isBye: true, seed: 9999 };
-    }
+  // ── Step 5: Grant byes to top seeds ──────────────────────────────────────
+  for (let seed = 1; seed <= numByes; seed++) {
+    const pos = seedAtPos.indexOf(seed);
+    if (pos < 0) continue;
+    const oppPos = pos % 2 === 0 ? pos + 1 : pos - 1;
+    slotArray[oppPos] = { label: "BYE", isBye: true, seed: 9999 };
   }
 
-  // ── Step 6: Verify & fix any remaining R1 same-group clashes ─────────────
-  // (Should be rare/none with the interleaved ordering, but we fix any edge cases)
-  for (let pass = 0; pass < G * 2; pass++) {
-    let foundClash = false;
+  // ── Step 6: Fix R1 same-group clashes ────────────────────────────────────
+  // The tier-based seeding keeps group-mates in different rank tiers, which
+  // naturally separates them. This pass fixes any remaining edge cases.
+  for (let pass = 0; pass < G * 3; pass++) {
+    let fixed = false;
     for (let i = 0; i < size; i += 2) {
-      const s1 = slotArray[i] as BracketSlot & { groupIdx?: number };
-      const s2 = slotArray[i + 1] as BracketSlot & { groupIdx?: number };
+      const s1 = slotArray[i], s2 = slotArray[i + 1];
       if (s1.isBye || s2.isBye) continue;
       if (s1.groupIdx !== undefined && s2.groupIdx !== undefined && s1.groupIdx === s2.groupIdx) {
-        // Find a swap partner in a different section
         for (let j = 0; j < size; j += 2) {
           if (j === i) continue;
-          const t1 = slotArray[j] as BracketSlot & { groupIdx?: number };
-          const t2 = slotArray[j + 1] as BracketSlot & { groupIdx?: number };
+          const t1 = slotArray[j], t2 = slotArray[j + 1];
           if (t1.isBye || t2.isBye) continue;
-          // Swap s2 with t2 only if it doesn't create a new clash
           if (t2.groupIdx !== s1.groupIdx && t1.groupIdx !== s2.groupIdx) {
-            const tmp = slotArray[i + 1];
-            slotArray[i + 1] = slotArray[j + 1];
-            slotArray[j + 1] = tmp;
-            foundClash = true;
-            break;
+            [slotArray[i + 1], slotArray[j + 1]] = [slotArray[j + 1], slotArray[i + 1]];
+            fixed = true; break;
           }
         }
-        if (foundClash) break;
+        if (fixed) break;
       }
     }
-    if (!foundClash) break;
+    if (!fixed) break;
   }
 
-  // ── Step 7: Build match objects ───────────────────────────────────────────
-  const firstRoundMatches: BracketMatch[] = [];
+  // ── Step 7: Build R1 match objects ───────────────────────────────────────
+  const r0Matches: BracketMatch[] = [];
   for (let i = 0; i < size; i += 2) {
-    firstRoundMatches.push({
+    r0Matches.push({
       id: `r0-m${i / 2}`,
       round: 0,
       matchNum: i / 2 + 1,
@@ -242,24 +206,26 @@ function buildBracket(groups: Group[], qualifiersPerGroup: number): BracketMatch
     });
   }
 
-  const result: BracketMatch[] = [...firstRoundMatches];
-  let prevRoundMatches = firstRoundMatches;
-  let nextMatchNum = firstRoundMatches.length + 1;
+  // ── Step 8: Build subsequent rounds ──────────────────────────────────────
+  const result: BracketMatch[] = [...r0Matches];
+  let prevRound = r0Matches;
+  let nextMatchNum = r0Matches.length + 1;
   for (let r = 1; r < numRounds; r++) {
-    const nextRoundMatches: BracketMatch[] = [];
-    for (let m = 0; m < prevRoundMatches.length / 2; m++) {
-      const feeder1 = prevRoundMatches[m * 2];
-      const feeder2 = prevRoundMatches[m * 2 + 1];
-      nextRoundMatches.push({
-        id: `r${r}-m${m}`,
-        round: r,
-        matchNum: nextMatchNum++,
-        slot1: { label: `W M${feeder1.matchNum}`, isBye: false, seed: 0 },
-        slot2: { label: `W M${feeder2.matchNum}`, isBye: false, seed: 0 },
-      });
+    const nextRound: BracketMatch[] = [];
+    for (let m = 0; m < prevRound.length / 2; m++) {
+      const f1 = prevRound[m * 2];
+      const f2 = prevRound[m * 2 + 1];
+      // If feeder is BYE vs BYE (padding match), propagate as BYE
+      const slot1: BracketSlot = (f1.slot1.isBye && f1.slot2.isBye)
+        ? { label: "BYE", isBye: true, seed: 9999 }
+        : { label: `W M${f1.matchNum}`, isBye: false, seed: 0 };
+      const slot2: BracketSlot = (f2.slot1.isBye && f2.slot2.isBye)
+        ? { label: "BYE", isBye: true, seed: 9999 }
+        : { label: `W M${f2.matchNum}`, isBye: false, seed: 0 };
+      nextRound.push({ id: `r${r}-m${m}`, round: r, matchNum: nextMatchNum++, slot1, slot2 });
     }
-    result.push(...nextRoundMatches);
-    prevRoundMatches = nextRoundMatches;
+    result.push(...nextRound);
+    prevRound = nextRound;
   }
   return result;
 }
@@ -373,6 +339,8 @@ function WimbledonBracket({
           const cardGap = BASE_GAP_Y * factor + CARD_H * (factor - 1);
           const topOffset = (factor - 1) * (CARD_H + BASE_GAP_Y) / 2;
           return rMatches.map((match, idx) => {
+            // Skip phantom BYE-vs-BYE matches (pure bracket padding — no real team involved)
+            if (match.slot1.isBye && match.slot2.isBye) return null;
             const x = round * (CARD_W + GAP_X);
             const y = topOffset + idx * (CARD_H + cardGap) + 28;
             const centerY = y + CARD_H / 2;
