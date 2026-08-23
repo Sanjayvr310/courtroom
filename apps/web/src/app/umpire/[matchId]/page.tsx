@@ -200,6 +200,98 @@ function AuditLog({ events, state }: { events: ScoreEvent[]; state: LiveMatchSta
   );
 }
 
+// ── Ready Panel (match format selector + start) ───────────────────────────────
+
+const FORMAT_PRESETS = [
+  { label: "Best of 1 · to 11", bestOf: 1 as const, pointsToWin: 11 as const },
+  { label: "Best of 1 · to 15", bestOf: 1 as const, pointsToWin: 15 as const },
+  { label: "Best of 1 · to 21", bestOf: 1 as const, pointsToWin: 21 as const },
+  { label: "Best of 3 · to 11", bestOf: 3 as const, pointsToWin: 11 as const },
+  { label: "Best of 3 · to 15", bestOf: 3 as const, pointsToWin: 15 as const },
+  { label: "Best of 5 · to 11", bestOf: 5 as const, pointsToWin: 11 as const },
+];
+
+function ReadyPanel({ stored, state, umpireName, onUpdate, onConfirm }: {
+  stored: StoredMatch;
+  state: LiveMatchState;
+  umpireName: string;
+  onUpdate: (s: StoredMatch) => void;
+  onConfirm: (c: { title: string; message: string; confirmLabel: string; danger?: boolean; requireReason?: boolean; onConfirm: (r?: string) => void } | null) => void;
+}) {
+  const [selectedPreset, setSelectedPreset] = useState<string>(
+    `${state.rules.bestOf}-${state.rules.pointsToWin}`
+  );
+  const [timeoutsPerTeam, setTimeoutsPerTeam] = useState(state.rules.maxTimeoutsPerTeam);
+
+  function applyPresetAndStart() {
+    const preset = FORMAT_PRESETS.find(p => `${p.bestOf}-${p.pointsToWin}` === selectedPreset);
+    const sideChangeThreshold = (preset?.pointsToWin ?? 11) === 11 ? 6 : (preset?.pointsToWin ?? 11) === 15 ? 8 : 11;
+    const newRules = {
+      ...state.rules,
+      bestOf: preset?.bestOf ?? state.rules.bestOf,
+      pointsToWin: preset?.pointsToWin ?? state.rules.pointsToWin,
+      maxTimeoutsPerTeam: timeoutsPerTeam,
+      sideChangePointThreshold: sideChangeThreshold,
+    };
+    // Rebuild stored with new rules
+    const updatedStored: StoredMatch = {
+      ...stored,
+      state: { ...stored.state, rules: newRules },
+    };
+    onConfirm({
+      title: "Start Match?",
+      message: `${state.team1Name} vs ${state.team2Name}\n${FORMAT_PRESETS.find(p => `${p.bestOf}-${p.pointsToWin}` === selectedPreset)?.label ?? ""}`,
+      confirmLabel: "Start Match",
+      onConfirm: () => { onUpdate(applyStartMatch(updatedStored, umpireName)); },
+    });
+  }
+
+  return (
+    <div className="px-3 mb-3">
+      {/* Format selector */}
+      <div className="rounded-2xl p-4 mb-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="text-white/40 text-[10px] font-semibold uppercase tracking-wide mb-3">Match Format</div>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {FORMAT_PRESETS.map(p => {
+            const key = `${p.bestOf}-${p.pointsToWin}`;
+            const active = selectedPreset === key;
+            return (
+              <button key={key} onClick={() => setSelectedPreset(key)}
+                className="py-2.5 px-3 rounded-xl text-xs font-bold transition-all active:scale-95 text-left"
+                style={active
+                  ? { background: "#D4E04A", color: "#0A1A0A" }
+                  : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Timeouts per team */}
+        <div className="flex items-center justify-between">
+          <span className="text-white/30 text-xs">Timeouts per team</span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setTimeoutsPerTeam(Math.max(0, timeoutsPerTeam - 1))}
+              className="w-7 h-7 rounded-lg text-white font-bold flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.08)" }}>−</button>
+            <span className="text-white font-bold w-4 text-center">{timeoutsPerTeam}</span>
+            <button onClick={() => setTimeoutsPerTeam(Math.min(3, timeoutsPerTeam + 1))}
+              className="w-7 h-7 rounded-lg text-white font-bold flex items-center justify-center"
+              style={{ background: "rgba(255,255,255,0.08)" }}>+</button>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={applyPresetAndStart}
+        className="w-full py-5 rounded-2xl font-black text-xl active:scale-95 transition-transform"
+        style={{ background: "#D4E04A", color: "#0A1A0A" }}>
+        Start Match
+      </button>
+    </div>
+  );
+}
+
 // ── All Matches List ──────────────────────────────────────────────────────────
 
 function AllMatchesList({ onSelect }: { onSelect: (matchId: string) => void }) {
@@ -814,28 +906,7 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
 
       {/* ── READY: START MATCH ── */}
       {isReady && (
-        <div className="px-3 mb-3">
-          <div className="rounded-2xl p-4 mb-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <div className="text-white/30 text-[10px] font-semibold uppercase tracking-wide mb-2">Match Rules</div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div><span className="text-white/20">Format:</span> <span className="text-white/55">{state.rules.format}</span></div>
-              <div><span className="text-white/20">Best of:</span> <span className="text-white/55">{state.rules.bestOf}</span></div>
-              <div><span className="text-white/20">Points:</span> <span className="text-white/55">to {state.rules.pointsToWin}, win by {state.rules.winBy}</span></div>
-              <div><span className="text-white/20">Timeouts:</span> <span className="text-white/55">{state.rules.maxTimeoutsPerTeam}/team</span></div>
-            </div>
-          </div>
-          <button
-            onClick={() => setConfirm({
-              title: "Start Match?",
-              message: `${state.team1Name} vs ${state.team2Name}`,
-              confirmLabel: "Start Match",
-              onConfirm: () => { update(applyStartMatch(stored, umpireName)); },
-            })}
-            className="w-full py-5 rounded-2xl font-black text-xl active:scale-95 transition-transform"
-            style={{ background: "#D4E04A", color: "#0A1A0A" }}>
-            Start Match
-          </button>
-        </div>
+        <ReadyPanel stored={stored} state={state} umpireName={umpireName} onUpdate={update} onConfirm={setConfirm} />
       )}
 
       {/* ── GAME BREAK ── */}

@@ -221,6 +221,7 @@ export default function UmpireHomePage() {
   const [allMatches, setAllMatches] = useState<StoredMatch[]>([]);
   const [tournamentNames, setTournamentNames] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<"mine" | "all">("mine");
+  const [selectedCourt, setSelectedCourt] = useState<string>("all");
 
   useEffect(() => {
     const p = getProfile();
@@ -463,7 +464,7 @@ export default function UmpireHomePage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="flex gap-1 p-1 rounded-2xl mb-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
             {[
               { key: "mine" as const, label: "My Matches", count: myMatches.length },
               { key: "all" as const, label: "All Matches", count: allMatches.length },
@@ -486,6 +487,31 @@ export default function UmpireHomePage() {
               </button>
             ))}
           </div>
+
+          {/* Court filter dropdown */}
+          {courtGroups.length > 1 && (
+            <div className="relative">
+              <select
+                value={selectedCourt}
+                onChange={e => setSelectedCourt(e.target.value)}
+                className="w-full appearance-none px-4 py-2.5 rounded-xl text-sm font-semibold focus:outline-none pr-8"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: selectedCourt === "all" ? "rgba(255,255,255,0.5)" : "#D4E04A",
+                }}>
+                <option value="all">🏟 All Courts ({displayMatches.length} matches)</option>
+                {courtGroups.map(({ court, matches }) => (
+                  <option key={court} value={court}>
+                    {court} — {matches.length} match{matches.length !== 1 ? "es" : ""}
+                    {matches.some(isLive) ? " 🔴" : ""}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: "rgba(255,255,255,0.3)" }}>▾</div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -510,14 +536,15 @@ export default function UmpireHomePage() {
             )}
           </div>
         ) : (
-          courtGroups.map(({ court, matches }) => (
-            <CourtSection
-              key={court}
-              court={court}
-              matches={matches}
-              onMatchClick={(id) => router.push(`/umpire/${id}`)}
-            />
-          ))
+          (selectedCourt === "all" ? courtGroups : courtGroups.filter(g => g.court === selectedCourt))
+            .map(({ court, matches }) => (
+              <CourtSection
+                key={court}
+                court={court}
+                matches={matches}
+                onMatchClick={(id) => router.push(`/umpire/${id}`)}
+              />
+            ))
         )}
       </div>
 
