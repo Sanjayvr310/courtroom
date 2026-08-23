@@ -1,0 +1,214 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-playfair: 'Playfair Display', Georgia, serif;
+  --font-inter: 'Inter', system-ui, sans-serif;
+
+  /* Court Room Brand — Classy */
+  --green-dark: #1A3318;
+  --green: #2D5A27;
+  --gold: #C9A84C;
+  --gold-light: #D4B86A;
+  --cream: #F8F4EE;
+  --cream-dark: #EDE7DC;
+  --ivory: #FDFAF5;
+  --stone: #8A8070;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-inter);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-court-cream text-court-green-dark;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-playfair);
+    letter-spacing: -0.01em;
+  }
+
+  * {
+    border-color: rgba(45, 90, 39, 0.12);
+  }
+}
+
+@layer components {
+
+  /* ── Cards ── */
+  .card {
+    @apply bg-white rounded-2xl shadow-card border border-court-parchment/60 overflow-hidden;
+  }
+
+  .card-dark {
+    @apply bg-court-green-dark rounded-2xl overflow-hidden;
+  }
+
+  .card-cream {
+    @apply bg-court-cream rounded-2xl border border-court-parchment overflow-hidden;
+  }
+
+  .card-gold {
+    @apply bg-white rounded-2xl shadow-card-gold border border-court-gold/20 overflow-hidden;
+  }
+
+  /* ── Live Badge ── */
+  .badge-live {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white tracking-wide uppercase;
+  }
+
+  /* ── Gold Divider ── */
+  .gold-divider {
+    @apply h-px bg-gradient-to-r from-transparent via-court-gold/40 to-transparent;
+  }
+
+  /* ── Section Label ── */
+  .section-label {
+    @apply text-xs font-semibold tracking-widest uppercase text-court-stone;
+  }
+
+  /* ── Score Number ── */
+  .score-number {
+    font-family: var(--font-playfair);
+    @apply font-bold tabular-nums;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Pill Tabs ── */
+  .pill-tab {
+    @apply px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+           text-court-stone hover:text-court-green hover:bg-court-parchment/60;
+  }
+
+  .pill-tab-active {
+    @apply bg-court-green text-white shadow-sm;
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+           bg-court-green text-white font-semibold text-sm
+           hover:bg-court-green-mid transition-all duration-200
+           shadow-sm active:scale-[0.98];
+  }
+
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+           bg-court-gold text-court-green-dark font-semibold text-sm
+           hover:bg-court-gold-light transition-all duration-200
+           shadow-card-gold active:scale-[0.98];
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+           border border-court-green/30 text-court-green font-semibold text-sm
+           hover:bg-court-green hover:text-white transition-all duration-200
+           active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           text-court-stone font-medium text-sm
+           hover:text-court-green hover:bg-court-parchment/60 transition-all duration-200;
+  }
+
+  /* ── Nav Link ── */
+  .nav-link {
+    @apply text-sm font-medium text-court-green-dark/60 hover:text-court-green
+           transition-colors duration-200;
+  }
+
+  .nav-link-active {
+    @apply text-court-green font-semibold;
+  }
+
+  /* ── Status Dots ── */
+  .dot-live { @apply w-2 h-2 rounded-full bg-red-500 animate-pulse; }
+  .dot-available { @apply w-2 h-2 rounded-full bg-emerald-500; }
+  .dot-break { @apply w-2 h-2 rounded-full bg-amber-500; }
+  .dot-maintenance { @apply w-2 h-2 rounded-full bg-stone-400; }
+
+  /* ── Table ── */
+  .data-table {
+    @apply w-full text-sm;
+  }
+
+  .data-table th {
+    @apply text-left px-4 py-3 text-court-stone text-xs font-semibold uppercase tracking-wide
+           border-b border-court-parchment;
+  }
+
+  .data-table td {
+    @apply px-4 py-3 border-b border-court-parchment/60;
+  }
+
+  .data-table tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* ── Gold Accent Line ── */
+  .gold-accent {
+    @apply relative;
+  }
+
+  .gold-accent::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-12 h-0.5 bg-court-gold rounded-full;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-playfair);
+  }
+
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #C9A84C 0%, #D4B86A 50%, #A8872E 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-green-gradient {
+    background: linear-gradient(135deg, #2D5A27 0%, #4A8040 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-hero {
+    background: linear-gradient(135deg, #1A3318 0%, #2D5A27 60%, #1C2B3A 100%);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #C9A84C transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #C9A84C;
+    border-radius: 2px;
+  }
+
+  /* Glass effect for dark backgrounds */
+  .glass-dark {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-gold {
+    background: rgba(201, 168, 76, 0.08);
+    border: 1px solid rgba(201, 168, 76, 0.2);
+  }
+}
