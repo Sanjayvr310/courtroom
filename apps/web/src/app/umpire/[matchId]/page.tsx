@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   RotateCcw, Clock, AlertCircle, ChevronLeft, Pause, Play,
   Flag, AlertTriangle, CheckCircle, Activity, ChevronDown, ChevronUp,
@@ -594,6 +595,7 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
   const { matchId } = params;
   const isNew = matchId === "new";
   const isAll = matchId === "all";
+  const router = useRouter();
 
   const [stored, setStored] = useState<StoredMatch | null>(null);
   const [umpireName, setUmpireName] = useState("Umpire");
@@ -605,7 +607,9 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
   } | null>(null);
   const [showAudit, setShowAudit] = useState(false);
   const [showServingSelector, setShowServingSelector] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const redirectRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (isNew || isAll) return;
@@ -642,6 +646,30 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
     const t = setTimeout(() => setLastPointFlash(null), 1200);
     return () => clearTimeout(t);
   }, [lastPointFlash]);
+
+  // Auto-redirect to /umpire console 8 seconds after match completion
+  useEffect(() => {
+    if (!stored) return;
+    const s = stored.state.status;
+    if (s === "MATCH_COMPLETED" || s === "FORFEITED" || s === "MATCH_DISPUTED") {
+      setRedirectCountdown(8);
+      redirectRef.current = setInterval(() => {
+        setRedirectCountdown(prev => {
+          if (prev === null) return null;
+          if (prev <= 1) {
+            if (redirectRef.current) clearInterval(redirectRef.current);
+            router.push("/umpire");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (redirectRef.current) clearInterval(redirectRef.current);
+      setRedirectCountdown(null);
+    }
+    return () => { if (redirectRef.current) clearInterval(redirectRef.current); };
+  }, [stored?.state.status]);
 
   function update(newStored: StoredMatch) {
     const withTime: StoredMatch = { ...newStored, state: { ...newStored.state, elapsedSeconds } };
@@ -953,10 +981,25 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
           <div className="text-white/35 text-sm mb-2">{formatMatchScore(state)}</div>
           {state.resultNotes && <div className="text-white/30 text-xs mb-3">{state.resultNotes}</div>}
           <div className="text-white/25 text-xs mb-4">Duration: {formatTime(elapsedSeconds)}</div>
-          <Link href="/umpire/all" className="inline-block px-5 py-2.5 rounded-xl text-sm font-bold"
+          <Link href="/umpire"
+            className="inline-block w-full py-3.5 rounded-2xl text-sm font-bold text-center mb-2"
             style={{ background: "#D4E04A", color: "#0A1A0A" }}>
-            ← Back to Matches
+            ← Back to Umpire Console
           </Link>
+          {redirectCountdown !== null && redirectCountdown > 0 && (
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-white/25 text-xs">Returning in {redirectCountdown}s…</span>
+              <button
+                onClick={() => {
+                  if (redirectRef.current) clearInterval(redirectRef.current);
+                  setRedirectCountdown(null);
+                }}
+                className="text-xs px-2.5 py-1 rounded-lg"
+                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.35)" }}>
+                Stay
+              </button>
+            </div>
+          )}
         </div>
       )}
 

@@ -227,8 +227,10 @@ function LiveMatchCard({ match }: { match: StoredMatch }) {
           <div className="flex-shrink-0 ml-2">
             {isLive ? (
               <span className="text-xl font-black tabular-nums" style={{ color: "#C9A84C" }}>{score1}</span>
-            ) : isDone ? (
-              <span className="text-base font-bold tabular-nums" style={{ color: wins1 > wins2 ? "#C9A84C" : "#8A8070" }}>{wins1}</span>
+            ) : isDone && completedGames.length > 0 ? (
+              <span className="text-base font-bold tabular-nums" style={{ color: wins1 > wins2 ? "#C9A84C" : "#8A8070" }}>
+                {completedGames.map(g => g.team1).join("–")}
+              </span>
             ) : null}
           </div>
         </div>
@@ -252,21 +254,18 @@ function LiveMatchCard({ match }: { match: StoredMatch }) {
           <div className="flex-shrink-0 ml-2">
             {isLive ? (
               <span className="text-xl font-black tabular-nums" style={{ color: "#C9A84C" }}>{score2}</span>
-            ) : isDone ? (
-              <span className="text-base font-bold tabular-nums" style={{ color: wins2 > wins1 ? "#C9A84C" : "#8A8070" }}>{wins2}</span>
+            ) : isDone && completedGames.length > 0 ? (
+              <span className="text-base font-bold tabular-nums" style={{ color: wins2 > wins1 ? "#C9A84C" : "#8A8070" }}>
+                {completedGames.map(g => g.team2).join("–")}
+              </span>
             ) : null}
           </div>
         </div>
 
-        {/* Completed game scores */}
-        {isDone && completedGames.length > 0 && (
-          <div className="flex gap-1 mt-2 flex-wrap">
-            {completedGames.map((g, i) => (
-              <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-semibold tabular-nums"
-                style={{ background: "#F8F4EE", color: "#8A8070" }}>
-                {g.team1}–{g.team2}
-              </span>
-            ))}
+        {/* Winner label for multi-game matches */}
+        {isDone && completedGames.length > 1 && (
+          <div className="mt-1.5 text-[10px] font-semibold text-center" style={{ color: "#8A8070" }}>
+            {wins1 > wins2 ? `${s.team1Name.split(" / ")[0]} wins ${wins1}–${wins2}` : `${s.team2Name.split(" / ")[0]} wins ${wins2}–${wins1}`}
           </div>
         )}
       </div>
@@ -448,19 +447,29 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     } catch { /* ignore */ }
   }
 
-  // Build groupStandings map from category.standings (keyed by groupIdx)
-  // Show qualifiers per-group as soon as that group has any completed matches — don't wait for all groups
+  // Build groupStandings map for knockout bracket — only include a group when ALL its matches are complete
+  // Each group of N teams has N*(N-1)/2 total matches
   const groupStandingsMap: Map<number, StandingsEntry[]> | null = (() => {
     if (!activeCategory?.standings || activeCategory.standings.length === 0) return null;
+    // Read all matches from match store to check completion per group
+    const allCatMatches = getMatchesForCategory(id, activeCatId ?? "");
     const map = new Map<number, StandingsEntry[]>();
     bracketGroups.forEach((g, idx) => {
+      const numTeams = g.teams.length;
+      const totalGroupMatches = (numTeams * (numTeams - 1)) / 2;
+      // Count completed matches for this group
+      const completedGroupMatches = allCatMatches.filter(m =>
+        m.state.groupName === g.name &&
+        (m.state.status === "MATCH_COMPLETED" || m.state.status === "FORFEITED")
+      ).length;
+      // Only include this group in bracket map when all matches are done
+      if (completedGroupMatches < totalGroupMatches) return;
       const groupTeamNames = new Set(
         g.teams.map(t => t.player2 ? `${t.player1} / ${t.player2}` : t.player1)
       );
       const groupStandings = (activeCategory.standings ?? [])
         .filter(s => groupTeamNames.has(s.registrationId) || groupTeamNames.has(s.player1Name))
         .sort((a, b) => b.points - a.points || (b.gamesWon - b.gamesLost) - (a.gamesWon - a.gamesLost));
-      // Include this group in the map even if only some matches are done
       if (groupStandings.length > 0) map.set(idx, groupStandings);
     });
     return map.size > 0 ? map : null;
@@ -681,15 +690,32 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                           <div>
                             <div className="flex items-center gap-3 mb-4">
                               <h2 className="font-display text-xl font-bold" style={{ color: "#1A3318" }}>Knockout Bracket</h2>
-                              {groupStandingsMap ? (
+                              {(() => {
+                              // How many groups are fully complete?
+                              const allCatMatchesForBracket = getMatchesForCategory(id, activeCatId ?? "");
+                              const completedGroups = bracketGroups.filter(g => {
+                                const total = (g.teams.length * (g.teams.length - 1)) / 2;
+                                const done = allCatMatchesForBracket.filter(m =>
+                                  m.state.groupName === g.name &&
+                                  (m.state.status === "MATCH_COMPLETED" || m.state.status === "FORFEITED")
+                                ).length;
+                                return done >= total;
+                              }).length;
+                              const allDone = completedGroups === bracketGroups.length;
+                              return allDone ? (
                                 <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: "#F0FDF4", color: "#16A34A" }}>
-                                  ✓ Qualifiers set
+                                  ✓ All qualifiers set
+                                </span>
+                              ) : completedGroups > 0 ? (
+                                <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: "#FEF3C7", color: "#D97706" }}>
+                                  {completedGroups}/{bracketGroups.length} groups done
                                 </span>
                               ) : (
                                 <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: "#F8F4EE", color: "#8A8070" }}>
                                   Awaiting group stage
                                 </span>
-                              )}
+                              );
+                            })()}
                             </div>
                             <div className="bg-white rounded-3xl overflow-hidden" style={{ border: "1px solid rgba(232,224,208,0.8)" }}>
                               <div className="px-6 py-4 flex items-center gap-3" style={{ background: "#1A3318" }}>

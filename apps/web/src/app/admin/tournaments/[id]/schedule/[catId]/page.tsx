@@ -551,13 +551,27 @@ export default function SchedulePage({
                             {/* Teams */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 text-sm flex-wrap">
-                                <span className="font-semibold truncate" style={{ color: "#1A3318" }}>
-                                  {m.team1Name.split(" / ")[0]}
-                                </span>
+                                <div className="min-w-0">
+                                  <div className="font-semibold truncate" style={{ color: "#1A3318" }}>
+                                    {m.team1Name.split(" / ")[0]}
+                                  </div>
+                                  {m.team1Name.includes(" / ") && (
+                                    <div className="text-[10px] truncate" style={{ color: "#8A8070" }}>
+                                      & {m.team1Name.split(" / ")[1]}
+                                    </div>
+                                  )}
+                                </div>
                                 <span className="text-xs flex-shrink-0 font-bold" style={{ color: "#C9A84C" }}>vs</span>
-                                <span className="font-semibold truncate" style={{ color: "#1A3318" }}>
-                                  {m.team2Name.split(" / ")[0]}
-                                </span>
+                                <div className="min-w-0">
+                                  <div className="font-semibold truncate" style={{ color: "#1A3318" }}>
+                                    {m.team2Name.split(" / ")[0]}
+                                  </div>
+                                  {m.team2Name.includes(" / ") && (
+                                    <div className="text-[10px] truncate" style={{ color: "#8A8070" }}>
+                                      & {m.team2Name.split(" / ")[1]}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
 

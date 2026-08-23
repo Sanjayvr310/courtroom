@@ -488,28 +488,33 @@ export default function UmpireHomePage() {
             ))}
           </div>
 
-          {/* Court filter dropdown */}
+          {/* Court filter — elegant pill buttons */}
           {courtGroups.length > 1 && (
-            <div className="relative">
-              <select
-                value={selectedCourt}
-                onChange={e => setSelectedCourt(e.target.value)}
-                className="w-full appearance-none px-4 py-2.5 rounded-xl text-sm font-semibold focus:outline-none pr-8"
-                style={{
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  color: selectedCourt === "all" ? "rgba(255,255,255,0.5)" : "#D4E04A",
-                }}>
-                <option value="all">🏟 All Courts ({displayMatches.length} matches)</option>
-                {courtGroups.map(({ court, matches }) => (
-                  <option key={court} value={court}>
-                    {court} — {matches.length} match{matches.length !== 1 ? "es" : ""}
-                    {matches.some(isLive) ? " 🔴" : ""}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: "rgba(255,255,255,0.3)" }}>▾</div>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setSelectedCourt("all")}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                style={selectedCourt === "all"
+                  ? { background: "rgba(255,255,255,0.12)", color: "white", border: "1px solid rgba(255,255,255,0.2)" }
+                  : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                All
+              </button>
+              {courtGroups.map(({ court, matches: cm }) => {
+                const hasLive = cm.some(isLive);
+                const active = selectedCourt === court;
+                return (
+                  <button
+                    key={court}
+                    onClick={() => setSelectedCourt(court)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                    style={active
+                      ? { background: hasLive ? "rgba(212,224,74,0.2)" : "rgba(255,255,255,0.12)", color: hasLive ? "#D4E04A" : "white", border: `1px solid ${hasLive ? "rgba(212,224,74,0.4)" : "rgba(255,255,255,0.2)"}` }
+                      : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    {hasLive && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse flex-shrink-0" />}
+                    {court}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
