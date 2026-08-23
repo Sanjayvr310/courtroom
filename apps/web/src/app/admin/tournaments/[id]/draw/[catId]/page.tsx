@@ -366,45 +366,89 @@ function WimbledonBracket({
     if (!rounds[m.round]) rounds[m.round] = [];
     rounds[m.round].push(m);
   }
-  const CARD_H = 80, CARD_W = 200, GAP_X = 40, BASE_GAP_Y = 8;
-  const r0Count = rounds[0]?.length ?? 1;
-  const totalH = r0Count * CARD_H + (r0Count - 1) * BASE_GAP_Y + 48;
+
+  const CARD_H = 76, BYE_H = 34, CARD_W = 210, GAP_X = 44, BASE_GAP_Y = 6;
+
+  function isByeMatch(m: BracketMatch) {
+    return (m.slot1.isBye || m.slot2.isBye) && !(m.slot1.isBye && m.slot2.isBye);
+  }
+  function matchH(m: BracketMatch) { return isByeMatch(m) ? BYE_H : CARD_H; }
+
+  // Build visible match lists per round (exclude phantom BYE-vs-BYE)
+  const roundMatches: BracketMatch[][] = [];
+  for (let r = 0; r < totalRounds; r++) {
+    roundMatches.push((rounds[r] ?? []).filter(m => !(m.slot1.isBye && m.slot2.isBye)));
+  }
+
+  // Compute y-centers for R0 based on match heights
+  const matchCenter: Record<string, number> = {};
+  let curY = 28;
+  for (const m of roundMatches[0] ?? []) {
+    matchCenter[m.id] = curY + matchH(m) / 2;
+    curY += matchH(m) + BASE_GAP_Y;
+  }
+  const totalH = curY + 20;
+
+  // Compute centers for R1+ as midpoint of two feeders
+  for (let r = 1; r < totalRounds; r++) {
+    const prev = roundMatches[r - 1];
+    (roundMatches[r] ?? []).forEach((m, mi) => {
+      const f1 = prev[mi * 2], f2 = prev[mi * 2 + 1];
+      if (f1 && f2) matchCenter[m.id] = ((matchCenter[f1.id] ?? 0) + (matchCenter[f2.id] ?? 0)) / 2;
+    });
+  }
 
   return (
     <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "82vh" }}>
       <div style={{ position: "relative", width: totalRounds * (CARD_W + GAP_X) + 20, height: totalH, minWidth: 600 }}>
-        {Object.entries(rounds).map(([roundStr, rMatches]) => {
-          const round = parseInt(roundStr);
+        {roundMatches.map((rMatches, round) => {
           const isFinal = round === totalRounds - 1;
-          const factor = Math.pow(2, round);
-          const cardGap = BASE_GAP_Y * factor + CARD_H * (factor - 1);
-          const topOffset = (factor - 1) * (CARD_H + BASE_GAP_Y) / 2;
+          const x = round * (CARD_W + GAP_X);
           return rMatches.map((match, idx) => {
-            // Skip phantom BYE-vs-BYE matches (pure bracket padding — no real team involved)
-            if (match.slot1.isBye && match.slot2.isBye) return null;
-            const x = round * (CARD_W + GAP_X);
-            const y = topOffset + idx * (CARD_H + cardGap) + 28;
-            const centerY = y + CARD_H / 2;
-            const nextCenterY = y + CARD_H + cardGap + CARD_H / 2;
-            const midY = (centerY + nextCenterY) / 2;
+            const bye = isByeMatch(match);
+            const h = matchH(match);
+            const centerY = matchCenter[match.id] ?? 0;
+            const y = centerY - h / 2;
+            const nextMatch = round < totalRounds - 1 ? roundMatches[round + 1]?.[Math.floor(idx / 2)] : null;
+            const nextCY = nextMatch ? (matchCenter[nextMatch.id] ?? 0) : 0;
+            const realSlot = bye ? (match.slot1.isBye ? match.slot2 : match.slot1) : null;
             return (
               <div key={match.id}>
-                {round < totalRounds - 1 && (
+                {round < totalRounds - 1 && nextMatch && (
                   <svg style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}>
-                    <line x1={x + CARD_W} y1={centerY} x2={x + CARD_W + GAP_X / 2} y2={centerY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.5" />
+                    <line x1={x + CARD_W} y1={centerY} x2={x + CARD_W + GAP_X / 2} y2={centerY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
                     {idx % 2 === 0 && (
                       <>
-                        <line x1={x + CARD_W + GAP_X / 2} y1={centerY} x2={x + CARD_W + GAP_X / 2} y2={nextCenterY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.5" />
-                        <line x1={x + CARD_W + GAP_X / 2} y1={midY} x2={x + CARD_W + GAP_X} y2={midY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.5" />
+                        <line x1={x + CARD_W + GAP_X / 2} y1={centerY} x2={x + CARD_W + GAP_X / 2} y2={nextCY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
+                        <line x1={x + CARD_W + GAP_X / 2} y1={nextCY} x2={x + CARD_W + GAP_X} y2={nextCY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
                       </>
                     )}
                   </svg>
                 )}
-                <div style={{ position: "absolute", left: x, top: y, width: CARD_W, height: CARD_H, borderRadius: 8, overflow: "hidden", border: isFinal ? "2px solid #C9A84C" : "1px solid #E8E0D0", boxShadow: isFinal ? "0 4px 20px rgba(201,168,76,0.25)" : "0 1px 4px rgba(0,0,0,0.07)", background: "white" }}>
-                  <MatchSlot slot={match.slot1} groupStandings={groupStandings} />
-                  <div style={{ height: 1, background: "#E8E0D0" }} />
-                  <MatchSlot slot={match.slot2} groupStandings={groupStandings} />
-                </div>
+                {bye && realSlot ? (
+                  <div style={{ position: "absolute", left: x, top: y, width: CARD_W, height: h, borderRadius: 8, overflow: "hidden", border: "1px dashed #D1C9B8", background: "linear-gradient(90deg,#FDFAF5,#F8F4EE)", display: "flex", alignItems: "center", padding: "0 10px", gap: 8 }}>
+                    {realSlot.seed > 0 && realSlot.seed <= 16 && (
+                      <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, background: "#C9A84C", color: "#1A3318" }}>{realSlot.seed}</div>
+                    )}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#1A3318", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {groupStandings && realSlot.groupIdx !== undefined ? (() => {
+                          const rm = realSlot.label.match(/^(\d+)/);
+                          const rn = rm ? parseInt(rm[1]) - 1 : 0;
+                          return groupStandings.get(realSlot.groupIdx)?.[rn]?.player1 ?? "TBD";
+                        })() : "TBD"}
+                      </div>
+                      <div style={{ fontSize: 9, color: "#C9A84C", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{realSlot.label}</div>
+                    </div>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: "#16A34A", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 4, padding: "2px 5px", flexShrink: 0 }}>BYE ✓</span>
+                  </div>
+                ) : (
+                  <div style={{ position: "absolute", left: x, top: y, width: CARD_W, height: h, borderRadius: 8, overflow: "hidden", border: isFinal ? "2px solid #C9A84C" : "1px solid #E8E0D0", boxShadow: isFinal ? "0 4px 20px rgba(201,168,76,0.25)" : "0 1px 4px rgba(0,0,0,0.07)", background: "white" }}>
+                    <MatchSlot slot={match.slot1} groupStandings={groupStandings} />
+                    <div style={{ height: 1, background: "#E8E0D0" }} />
+                    <MatchSlot slot={match.slot2} groupStandings={groupStandings} />
+                  </div>
+                )}
               </div>
             );
           });
