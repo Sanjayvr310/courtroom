@@ -45,7 +45,7 @@ function MatchSlot({
   if (slot.isBye) {
     return (
       <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 10px", background: "#F8F4EE" }}>
-        <span style={{ fontSize: 10, fontStyle: "italic", color: "#B0A898", letterSpacing: "0.05em" }}>BYE — Auto Advance</span>
+        <span style={{ fontSize: 10, fontStyle: "italic", color: "#B0A898" }}>BYE</span>
       </div>
     );
   }
@@ -119,10 +119,10 @@ function WimbledonBracket({
   const actualRounds = matches.length > 0 ? Math.max(...matches.map(m => m.round)) + 1 : totalRounds;
   const CARD_H = 76, CARD_W = 210, GAP_X = 44, BASE_GAP_Y = 8;
 
-  const roundMatches: BracketMatch[][] = Array.from({ length: actualRounds }, (_, r) => {
-    if (r === 0) return matches.filter(m => m.round === 0 && !m.slot1.isBye && !m.slot2.isBye);
-    return matches.filter(m => m.round === r && !(m.slot1.isBye && m.slot2.isBye));
-  });
+  // All rounds — only filter phantom BYE-vs-BYE (no real team on either side)
+  const roundMatches: BracketMatch[][] = Array.from({ length: actualRounds }, (_, r) =>
+    matches.filter(m => m.round === r)
+  );
   const mc: Record<string, number> = {};
   let cy = 28;
   for (const m of roundMatches[0] ?? []) { mc[m.id] = cy + CARD_H / 2; cy += CARD_H + BASE_GAP_Y; }
@@ -145,18 +145,19 @@ function WimbledonBracket({
             const centerY = mc[match.id] ?? 0;
             const y = centerY - CARD_H / 2;
             const nextMatch = round < actualRounds - 1 ? roundMatches[round + 1]?.[Math.floor(idx / 2)] : null;
-            const nextCY = nextMatch ? (mc[nextMatch.id] ?? 0) : 0;
+            const nextMatchY = nextMatch ? (mc[nextMatch.id] ?? 0) - CARD_H / 2 : 0;
+            const isEven = idx % 2 === 0;
+            const targetSlotY = nextMatch
+              ? isEven ? nextMatchY + CARD_H / 4 : nextMatchY + (3 * CARD_H) / 4
+              : 0;
+            const midX = x + CARD_W + GAP_X / 2;
             return (
               <div key={match.id}>
                 {round < actualRounds - 1 && nextMatch && (
                   <svg style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}>
-                    <line x1={x + CARD_W} y1={centerY} x2={x + CARD_W + GAP_X / 2} y2={centerY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
-                    {idx % 2 === 0 && (
-                      <>
-                        <line x1={x + CARD_W + GAP_X / 2} y1={centerY} x2={x + CARD_W + GAP_X / 2} y2={nextCY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
-                        <line x1={x + CARD_W + GAP_X / 2} y1={nextCY} x2={x + CARD_W + GAP_X} y2={nextCY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
-                      </>
-                    )}
+                    <line x1={x + CARD_W} y1={centerY} x2={midX} y2={centerY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
+                    <line x1={midX} y1={centerY} x2={midX} y2={targetSlotY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
+                    <line x1={midX} y1={targetSlotY} x2={x + CARD_W + GAP_X} y2={targetSlotY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
                   </svg>
                 )}
                 <div style={{ position: "absolute", left: x, top: y, width: CARD_W, height: CARD_H, borderRadius: 8, overflow: "hidden", border: isFinal ? "2px solid #C9A84C" : "1px solid #E8E0D0", boxShadow: isFinal ? "0 4px 20px rgba(201,168,76,0.25)" : "0 1px 4px rgba(0,0,0,0.07)", background: "white", display: "flex", flexDirection: "column" }}>

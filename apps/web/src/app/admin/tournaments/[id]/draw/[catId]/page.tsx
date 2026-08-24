@@ -314,7 +314,7 @@ function MatchSlot({
   if (slot.isBye) {
     return (
       <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 10px", background: "#F8F4EE" }}>
-        <span style={{ fontSize: 10, fontStyle: "italic", color: "#B0A898", letterSpacing: "0.05em" }}>BYE — Auto Advance</span>
+        <span style={{ fontSize: 10, fontStyle: "italic", color: "#B0A898" }}>BYE</span>
       </div>
     );
   }
