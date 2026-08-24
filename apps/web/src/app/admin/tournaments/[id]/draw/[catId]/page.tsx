@@ -235,83 +235,60 @@ function buildBracket(groups: Group[], qualifiersPerGroup: number): BracketMatch
     if (!fixed) break;
   }
 
-  // ── Step 7: Build match tree, collapsing bye rounds ──────────────────────
-  // Strategy: build ALL rounds including R0, but then strip out R0 entirely
-  // if every R0 match is either a bye-match or phantom (BYE-vs-BYE).
-  // For R1 slots: if the R0 feeder is a bye-match, resolve it immediately
-  // by placing the real team's slot directly into R1 (no "W M1" placeholder).
-  // This collapses the bye round and the bracket starts at the first real round.
+  // ── Step 7: Build all match rounds ───────────────────────────────────────
+  // R0: ALL 16 cards including bye matches (team vs BYE).
+  //     Only skip phantom BYE-vs-BYE (both slots are padding — no real team).
+  // R1+: standard W Mn placeholders.
+  // The renderer handles bye cards specially (flat connector line to R1 slot1).
 
-  // Helper: does a match have exactly one real team (the other is BYE)?
-  function isByePassthrough(m: { slot1: BracketSlot; slot2: BracketSlot }): BracketSlot | null {
-    if (m.slot1.isBye && !m.slot2.isBye) return m.slot2;
-    if (!m.slot1.isBye && m.slot2.isBye) return m.slot1;
-    return null;
-  }
-
+  const result: BracketMatch[] = [];
   const r0Matches: BracketMatch[] = [];
+
   for (let i = 0; i < size; i += 2) {
-    r0Matches.push({
+    const s1 = slotArray[i], s2 = slotArray[i + 1];
+    // Skip pure padding matches (no real team on either side)
+    if (s1.isBye && s2.isBye) {
+      // Still push a phantom so round numbering stays correct for R1 feeder indexing
+      r0Matches.push({ id: `r0-m${i / 2}`, round: 0, matchNum: i / 2 + 1, slot1: s1, slot2: s2 });
+      continue;
+    }
+    const m: BracketMatch = {
       id: `r0-m${i / 2}`,
       round: 0,
       matchNum: i / 2 + 1,
-      slot1: slotArray[i],
-      slot2: slotArray[i + 1],
-    });
+      slot1: s1,
+      slot2: s2,
+    };
+    r0Matches.push(m);
+    result.push(m);
   }
 
-  // Check if the entire R0 is phantom/bye (no real vs real matches at all)
-  const r0HasRealMatches = r0Matches.some(m => !m.slot1.isBye && !m.slot2.isBye);
-
-  // Build R1+ rounds
-  const laterRounds: BracketMatch[][] = [];
-  let prevRound = r0Matches;
+  // Build R1+ using W Mn placeholders
+  let prevRound = r0Matches; // includes phantoms for correct indexing
   let nextMatchNum = r0Matches.length + 1;
-
   for (let r = 1; r < numRounds; r++) {
     const nextRound: BracketMatch[] = [];
     for (let m = 0; m < prevRound.length / 2; m++) {
       const f1 = prevRound[m * 2];
       const f2 = prevRound[m * 2 + 1];
-
-      // Resolve slot for feeder f:
-      // - both BYE → propagate BYE (padding)
-      // - bye-passthrough → use the real team's slot directly (collapse the bye)
-      // - real match → "W Mn" placeholder
-      function resolveSlot(f: BracketMatch): BracketSlot {
+      function slotFor(f: BracketMatch): BracketSlot {
         if (f.slot1.isBye && f.slot2.isBye) return { label: "BYE", isBye: true, seed: 9999 };
-        const passthrough = isByePassthrough(f);
-        if (passthrough) return { ...passthrough }; // real team advances directly
         return { label: `W M${f.matchNum}`, isBye: false, seed: 0 };
       }
-
-      nextRound.push({
+      const nm: BracketMatch = {
         id: `r${r}-m${m}`,
         round: r,
         matchNum: nextMatchNum++,
-        slot1: resolveSlot(f1),
-        slot2: resolveSlot(f2),
-      });
+        slot1: slotFor(f1),
+        slot2: slotFor(f2),
+      };
+      nextRound.push(nm);
+      if (!(nm.slot1.isBye && nm.slot2.isBye)) result.push(nm);
     }
-    laterRounds.push(nextRound);
     prevRound = nextRound;
   }
 
-  // If R0 had no real matches (all byes/phantom), skip R0 and start from R1
-  // Re-number rounds so they start from 0
-  if (!r0HasRealMatches) {
-    return laterRounds.flatMap((rnd, ri) =>
-      rnd.map(m => ({ ...m, round: ri }))
-    );
-  }
-
-  // Otherwise include R0 (it has real matches like "1st·K vs 2nd·J")
-  // but filter out phantom BYE-vs-BYE matches from R0
-  const r0Visible = r0Matches.filter(m => !(m.slot1.isBye && m.slot2.isBye));
-  return [
-    ...r0Visible,
-    ...laterRounds.flatMap((rnd, ri) => rnd.map(m => ({ ...m, round: ri + 1 }))),
-  ];
+  return result;
 }
 
 // ─── Bracket Renderer ─────────────────────────────────────────────────────────
@@ -415,17 +392,12 @@ function WimbledonBracket({
   const actualRounds = Math.max(...matches.map(m => m.round)) + 1;
   const CARD_H = 76, CARD_W = 210, GAP_X = 44, BASE_GAP_Y = 8;
 
-  // R0: only real-vs-real matches (bye teams already appear as resolved slots in R1)
-  // R1+: all matches (no BYE-vs-BYE phantom)
-  const roundMatches: BracketMatch[][] = Array.from({ length: actualRounds }, (_, r) => {
-    if (r === 0) {
-      // Only show real matches — bye teams are already in R1 slots directly
-      return matches.filter(m => m.round === 0 && !m.slot1.isBye && !m.slot2.isBye);
-    }
-    return matches.filter(m => m.round === r && !(m.slot1.isBye && m.slot2.isBye));
-  });
+  // All rounds — filter only phantom BYE-vs-BYE (both slots padding, no real team)
+  const roundMatches: BracketMatch[][] = Array.from({ length: actualRounds }, (_, r) =>
+    matches.filter(m => m.round === r)
+  );
 
-  // Y-centers: R0 stacked, R1+ = midpoint of two feeder centers
+  // Y-centers: R0 stacked sequentially, R1+ = midpoint of two feeder centers
   const matchCenter: Record<string, number> = {};
   let curY = 28;
   for (const m of roundMatches[0] ?? []) {
@@ -451,18 +423,31 @@ function WimbledonBracket({
             const centerY = matchCenter[match.id] ?? 0;
             const y = centerY - CARD_H / 2;
             const nextMatch = round < actualRounds - 1 ? roundMatches[round + 1]?.[Math.floor(idx / 2)] : null;
-            const nextCY = nextMatch ? (matchCenter[nextMatch.id] ?? 0) : 0;
+            const nextMatchY = nextMatch ? (matchCenter[nextMatch.id] ?? 0) - CARD_H / 2 : 0;
+
+            // For R0→R1 connections: lines go to specific SLOT of next match
+            // idx%2===0 (even = first of pair) → connects to slot1 (top) of R1 card
+            // idx%2===1 (odd = second of pair) → connects to slot2 (bottom) of R1 card
+            // slot1 center = nextMatchY + CARD_H/4
+            // slot2 center = nextMatchY + 3*CARD_H/4
+            const isEven = idx % 2 === 0;
+            const targetSlotY = nextMatch
+              ? isEven
+                ? nextMatchY + CARD_H / 4        // slot1 center
+                : nextMatchY + (3 * CARD_H) / 4  // slot2 center
+              : 0;
+            const midX = x + CARD_W + GAP_X / 2;
+
             return (
               <div key={match.id}>
                 {round < actualRounds - 1 && nextMatch && (
                   <svg style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", pointerEvents: "none", overflow: "visible" }}>
-                    <line x1={x + CARD_W} y1={centerY} x2={x + CARD_W + GAP_X / 2} y2={centerY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
-                    {idx % 2 === 0 && (
-                      <>
-                        <line x1={x + CARD_W + GAP_X / 2} y1={centerY} x2={x + CARD_W + GAP_X / 2} y2={nextCY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
-                        <line x1={x + CARD_W + GAP_X / 2} y1={nextCY} x2={x + CARD_W + GAP_X} y2={nextCY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
-                      </>
-                    )}
+                    {/* Horizontal line from this card to mid-column */}
+                    <line x1={x + CARD_W} y1={centerY} x2={midX} y2={centerY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
+                    {/* Vertical line from this card's level to target slot */}
+                    <line x1={midX} y1={centerY} x2={midX} y2={targetSlotY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
+                    {/* Horizontal line into target slot of next card */}
+                    <line x1={midX} y1={targetSlotY} x2={x + CARD_W + GAP_X} y2={targetSlotY} stroke="#C9A84C" strokeWidth="1.5" strokeOpacity="0.4" />
                   </svg>
                 )}
                 <div style={{ position: "absolute", left: x, top: y, width: CARD_W, height: CARD_H, borderRadius: 8, overflow: "hidden", border: isFinal ? "2px solid #C9A84C" : "1px solid #E8E0D0", boxShadow: isFinal ? "0 4px 20px rgba(201,168,76,0.25)" : "0 1px 4px rgba(0,0,0,0.07)", background: "white", display: "flex", flexDirection: "column" }}>
