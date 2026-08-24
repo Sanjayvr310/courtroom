@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   RotateCcw, Clock, AlertCircle, ChevronLeft, Pause, Play,
-  Flag, AlertTriangle, CheckCircle, Activity, ChevronDown, ChevronUp,
+  Flag, AlertTriangle, CheckCircle, Activity, ChevronDown, ChevronUp, Menu, X,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -608,6 +608,7 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
   const [showAudit, setShowAudit] = useState(false);
   const [showServingSelector, setShowServingSelector] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
+  const [showPanel, setShowPanel] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const redirectRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -733,8 +734,15 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
   const flashTeam = lastPointFlash;
   const flashBg = flashTeam === "team1" ? "rgba(61,107,53,0.4)" : flashTeam === "team2" ? "rgba(26,39,68,0.5)" : "transparent";
 
+  // Hint text for side-out button — at 0-0-2 always says "other team"
+  const sideOutHint = state.isFirstServerOfGame
+    ? `→ ${state.servingTeam === "team1" ? t2Parts[0] : t1Parts[0]} serves (0-0-2)`
+    : state.rules.format === "singles" || state.servingPlayerIndex === 1
+      ? `→ ${state.servingTeam === "team1" ? t2Parts[0] : t1Parts[0]} serves`
+      : "→ partner serves";
+
   return (
-    <div className="min-h-screen flex flex-col max-w-md mx-auto" style={{ background: "#0A1A0A" }}>
+    <div className="min-h-screen flex flex-col max-w-md mx-auto" style={{ background: "#0B1A0C" }}>
       {confirm && (
         <ConfirmModal
           title={confirm.title} message={confirm.message} confirmLabel={confirm.confirmLabel}
@@ -745,22 +753,107 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
       )}
 
       {/* ── TOP BAR ── */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <Link href="/umpire/all" className="w-9 h-9 flex items-center justify-center rounded-xl transition-colors"
-          style={{ background: "rgba(255,255,255,0.06)" }}>
-          <ChevronLeft size={18} style={{ color: "rgba(255,255,255,0.5)" }} />
-        </Link>
+      <div className="flex items-center justify-between px-4 pt-5 pb-3">
+        <button onClick={() => setShowPanel(true)}
+          className="w-9 h-9 flex items-center justify-center rounded-xl active:scale-95 transition-all"
+          style={{ background: "rgba(255,255,255,0.07)" }}>
+          <Menu size={18} style={{ color: "rgba(255,255,255,0.55)" }} />
+        </button>
         <div className="text-center">
-          <div className="text-white/40 text-[10px] font-bold uppercase tracking-widest">
-            {state.court ? state.court : "Umpire"}
-          </div>
-          {state.groupName && <div className="text-white/25 text-[10px]">{state.groupName}</div>}
+          <div className="text-white/55 text-[11px] font-semibold uppercase tracking-widest">{state.court || "Match"}</div>
+          {state.groupName && <div className="text-white/25 text-[10px] mt-0.5">{state.groupName}</div>}
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl" style={{ background: "rgba(255,255,255,0.06)" }}>
-          <Clock size={11} style={{ color: "rgba(255,255,255,0.4)" }} />
-          <span className="tabular-nums font-mono text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{formatTime(elapsedSeconds)}</span>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl" style={{ background: "rgba(255,255,255,0.07)" }}>
+          <Clock size={11} style={{ color: "rgba(255,255,255,0.3)" }} />
+          <span className="tabular-nums font-mono text-xs font-bold" style={{ color: "rgba(255,255,255,0.45)" }}>{formatTime(elapsedSeconds)}</span>
         </div>
       </div>
+
+      {/* ── SIDE PANEL ── */}
+      {showPanel && (
+        <div className="fixed inset-0 z-40 flex" onClick={() => setShowPanel(false)}>
+          <div className="w-72 h-full overflow-y-auto flex flex-col"
+            style={{ background: "#0D200E", borderRight: "1px solid rgba(255,255,255,0.07)" }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              <div>
+                <div className="text-white font-bold text-sm">{state.court || "Console"}</div>
+                {state.groupName && <div className="text-white/30 text-xs">{state.groupName}</div>}
+              </div>
+              <button onClick={() => setShowPanel(false)} className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
+                <X size={15} style={{ color: "rgba(255,255,255,0.4)" }} />
+              </button>
+            </div>
+            <div className="flex-1 px-4 py-4 space-y-5">
+              <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <Clock size={16} style={{ color: "rgba(255,255,255,0.3)" }} />
+                <div>
+                  <div className="text-[10px] text-white/25 uppercase tracking-wide">Match Time</div>
+                  <div className="text-white font-mono font-bold text-xl tabular-nums">{formatTime(elapsedSeconds)}</div>
+                </div>
+              </div>
+              {(isLive || isPaused) && (
+                <div className="space-y-2">
+                  <div className="text-[10px] text-white/25 uppercase tracking-wide px-1">Controls</div>
+                  <button disabled={!canUndoPoint}
+                    onClick={() => { if (!canUndoPoint) return; setConfirm({ title: "Undo Last Point?", message: "Reverses the last scored point.", confirmLabel: "Undo", onConfirm: () => { update(applyUndoLastPoint(stored, umpireName)); setShowPanel(false); } }); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl disabled:opacity-25 active:scale-95 transition-all"
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <RotateCcw size={15} style={{ color: "rgba(255,255,255,0.4)" }} />
+                    <span className="text-sm font-medium text-white/60">Undo Last Point</span>
+                  </button>
+                  <button onClick={() => { if (isLive) update(applyPauseMatch(stored, umpireName)); else update(applyResumeMatch(stored, umpireName)); setShowPanel(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl active:scale-95 transition-all"
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    {isLive ? <Pause size={15} style={{ color: "#FB923C" }} /> : <Play size={15} style={{ color: "#D4E04A" }} />}
+                    <span className="text-sm font-medium text-white/60">{isLive ? "Pause Match" : "Resume Match"}</span>
+                  </button>
+                  <div className="text-[10px] text-white/25 uppercase tracking-wide px-1 pt-2">Timeouts</div>
+                  {([{ team: "team1" as const, name: t1Parts[0], used: state.timeouts.team1Used }, { team: "team2" as const, name: t2Parts[0], used: state.timeouts.team2Used }]).map(({ team, name, used }) => {
+                    const rem = state.rules.maxTimeoutsPerTeam - used;
+                    return (
+                      <button key={team} disabled={rem <= 0}
+                        onClick={() => { if (!rem) return; setConfirm({ title: `T/O — ${name}`, message: `${rem} remaining.`, confirmLabel: "Call Timeout", onConfirm: () => { update(applyTimeout(stored, team, umpireName)); setShowPanel(false); } }); }}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl disabled:opacity-25 active:scale-95 transition-all"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                        <div className="flex items-center gap-3">
+                          <AlertCircle size={15} style={{ color: rem > 0 ? "#93C5FD" : "rgba(255,255,255,0.2)" }} />
+                          <span className="text-sm font-medium text-white/60">{name}</span>
+                        </div>
+                        <span className="text-xs text-white/25">{rem} left</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {(isLive || isPaused || isGameBreak) && (
+                <div className="space-y-2">
+                  <div className="text-[10px] text-white/25 uppercase tracking-wide px-1">Danger Zone</div>
+                  <button onClick={() => { setConfirm({ title: "Forfeit", message: `${t1Parts[0]} forfeits?`, confirmLabel: "Forfeit", danger: true, onConfirm: () => { update(applyForfeit(stored, "team1", umpireName)); setShowPanel(false); } }); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl active:scale-95 transition-all"
+                    style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.12)" }}>
+                    <Flag size={15} style={{ color: "#EF4444" }} />
+                    <span className="text-sm font-medium" style={{ color: "#EF4444" }}>Forfeit</span>
+                  </button>
+                  <button onClick={() => { setConfirm({ title: "Dispute", message: "Describe the issue.", confirmLabel: "Mark Disputed", danger: true, requireReason: true, onConfirm: (reason) => { update(applyDispute(stored, umpireName, reason ?? "Disputed")); setShowPanel(false); } }); }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl active:scale-95 transition-all"
+                    style={{ background: "rgba(251,146,60,0.06)", border: "1px solid rgba(251,146,60,0.12)" }}>
+                    <AlertTriangle size={15} style={{ color: "#FB923C" }} />
+                    <span className="text-sm font-medium" style={{ color: "#FB923C" }}>Dispute</span>
+                  </button>
+                </div>
+              )}
+              <button onClick={() => setShowAudit(!showAudit)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <Activity size={14} style={{ color: "rgba(255,255,255,0.2)" }} />
+                <span className="text-sm text-white/25">{showAudit ? "Hide" : "Show"} Audit ({events.length})</span>
+              </button>
+              {showAudit && <div className="mt-1"><AuditLog events={events} state={state} /></div>}
+              <Link href="/umpire" className="block text-center py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>← Back to Console</Link>
+            </div>
+          </div>
+          <div className="flex-1" style={{ background: "rgba(0,0,0,0.5)" }} />
+        </div>
+      )}
 
       {/* ── STATUS + GAME PILLS ── */}
       <div className="flex items-center justify-center gap-2 px-4 mb-3">
@@ -908,13 +1001,15 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
                 </div>
               </button>
 
-              {/* SIDE OUT */}
+              {/* SIDE OUT — highlight specially at 0-0-2 */}
               <button onPointerDown={() => sideOut()}
-                className="w-full py-4 rounded-2xl font-bold active:scale-95 transition-transform select-none flex items-center justify-center gap-3"
-                style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                <span className="text-sm">SIDE OUT</span>
-                <span className="text-[10px] text-white/30">
-                  {state.isFirstServerOfGame ? "→ other team serves" : state.servingPlayerIndex === 0 ? "→ partner serves" : "→ other team serves"}
+                className="w-full py-4 rounded-2xl font-bold active:scale-95 transition-transform select-none flex flex-col items-center justify-center gap-1"
+                style={state.isFirstServerOfGame
+                  ? { background: "rgba(255,255,255,0.1)", color: "white", border: "2px solid rgba(255,255,255,0.25)" }
+                  : { background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <span className="text-sm tracking-widest">SIDE OUT</span>
+                <span className="text-[10px]" style={{ color: state.isFirstServerOfGame ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)" }}>
+                  {sideOutHint}
                 </span>
               </button>
 
@@ -1003,124 +1098,7 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
         </div>
       )}
 
-      {/* ── CONTROLS ROW (Undo / Pause / T/O) ── */}
-      {(isLive || isPaused) && (
-        <div className="px-3 mb-2">
-          <div className="grid grid-cols-4 gap-2">
-            {/* Undo */}
-            <button
-              onClick={() => {
-                if (!canUndoPoint) return;
-                setConfirm({
-                  title: "Undo Last Point?",
-                  message: "Reverses the last scored point.",
-                  confirmLabel: "Undo",
-                  onConfirm: () => { update(applyUndoLastPoint(stored, umpireName)); },
-                });
-              }}
-              disabled={!canUndoPoint}
-              className="flex flex-col items-center gap-1 py-3 rounded-2xl transition-all active:scale-95 disabled:opacity-25"
-              style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)" }}>
-              <RotateCcw size={17} />
-              <span className="text-[9px] font-semibold">Undo</span>
-            </button>
-
-            {/* Pause / Resume */}
-            <button
-              onClick={() => {
-                if (isLive) update(applyPauseMatch(stored, umpireName));
-                else update(applyResumeMatch(stored, umpireName));
-              }}
-              className="flex flex-col items-center gap-1 py-3 rounded-2xl transition-all active:scale-95"
-              style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)" }}>
-              {isLive ? <Pause size={17} /> : <Play size={17} />}
-              <span className="text-[9px] font-semibold">{isLive ? "Pause" : "Resume"}</span>
-            </button>
-
-            {/* T/O Team 1 */}
-            <button
-              onClick={() => {
-                const rem = state.rules.maxTimeoutsPerTeam - state.timeouts.team1Used;
-                if (rem <= 0) return;
-                setConfirm({
-                  title: `Timeout — ${t1Parts[0]}`,
-                  message: `${rem} timeout${rem > 1 ? "s" : ""} left.`,
-                  confirmLabel: "Call Timeout",
-                  onConfirm: () => { update(applyTimeout(stored, "team1", umpireName)); },
-                });
-              }}
-              disabled={state.timeouts.team1Used >= state.rules.maxTimeoutsPerTeam}
-              className="flex flex-col items-center gap-1 py-3 rounded-2xl transition-all active:scale-95 disabled:opacity-25"
-              style={{ background: "rgba(61,107,53,0.2)", color: "#A8D5A0" }}>
-              <AlertCircle size={17} />
-              <span className="text-[9px] font-semibold">T/O {t1Parts[0].slice(0, 4)}</span>
-              <span className="text-[8px] opacity-60">{state.rules.maxTimeoutsPerTeam - state.timeouts.team1Used} left</span>
-            </button>
-
-            {/* T/O Team 2 */}
-            <button
-              onClick={() => {
-                const rem = state.rules.maxTimeoutsPerTeam - state.timeouts.team2Used;
-                if (rem <= 0) return;
-                setConfirm({
-                  title: `Timeout — ${t2Parts[0]}`,
-                  message: `${rem} timeout${rem > 1 ? "s" : ""} left.`,
-                  confirmLabel: "Call Timeout",
-                  onConfirm: () => { update(applyTimeout(stored, "team2", umpireName)); },
-                });
-              }}
-              disabled={state.timeouts.team2Used >= state.rules.maxTimeoutsPerTeam}
-              className="flex flex-col items-center gap-1 py-3 rounded-2xl transition-all active:scale-95 disabled:opacity-25"
-              style={{ background: "rgba(26,39,68,0.4)", color: "#93C5FD" }}>
-              <AlertCircle size={17} />
-              <span className="text-[9px] font-semibold">T/O {t2Parts[0].slice(0, 4)}</span>
-              <span className="text-[8px] opacity-60">{state.rules.maxTimeoutsPerTeam - state.timeouts.team2Used} left</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── DANGER ACTIONS ── */}
-      {(isLive || isPaused || isGameBreak) && (
-        <div className="px-3 mb-2 flex gap-2">
-          <button
-            onClick={() => setConfirm({
-              title: "Forfeit Match",
-              message: `${t1Parts[0]} forfeits?`,
-              confirmLabel: `${t1Parts[0]} Forfeits`,
-              danger: true,
-              onConfirm: () => { update(applyForfeit(stored, "team1", umpireName)); },
-            })}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold active:scale-95 transition-all"
-            style={{ background: "rgba(239,68,68,0.08)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.15)" }}>
-            <Flag size={12} /> Forfeit
-          </button>
-          <button
-            onClick={() => setConfirm({
-              title: "Dispute Match",
-              message: "Describe the issue.",
-              confirmLabel: "Mark Disputed",
-              danger: true,
-              requireReason: true,
-              onConfirm: (reason) => { update(applyDispute(stored, umpireName, reason ?? "Disputed")); },
-            })}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold active:scale-95 transition-all"
-            style={{ background: "rgba(251,146,60,0.08)", color: "#FB923C", border: "1px solid rgba(251,146,60,0.15)" }}>
-            <AlertTriangle size={12} /> Dispute
-          </button>
-        </div>
-      )}
-
-      {/* ── AUDIT LOG ── */}
-      <div className="px-3 mb-2">
-        <button onClick={() => setShowAudit(!showAudit)}
-          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-semibold transition-all"
-          style={{ background: "rgba(255,255,255,0.03)", color: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.04)" }}>
-          <Activity size={11} /> {showAudit ? "Hide" : "Show"} Audit Log ({events.length})
-        </button>
-      </div>
-
-      {showAudit && <AuditLog events={events} state={state} />}
+      {/* Controls moved to ≡ side panel */}
 
       <div className="h-10" />
     </div>
