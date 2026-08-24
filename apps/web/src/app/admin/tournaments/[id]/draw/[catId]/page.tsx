@@ -336,8 +336,8 @@ function MatchSlot({
 }) {
   if (slot.isBye) {
     return (
-      <div style={{ height: "50%", display: "flex", alignItems: "center", padding: "0 10px", background: "#F9FAFB" }}>
-        <span style={{ fontSize: 10, fontStyle: "italic", color: "#9CA3AF" }}>BYE</span>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 10px", background: "#F8F4EE" }}>
+        <span style={{ fontSize: 10, fontStyle: "italic", color: "#B0A898", letterSpacing: "0.05em" }}>BYE — Auto Advance</span>
       </div>
     );
   }
@@ -360,7 +360,7 @@ function MatchSlot({
   }
 
   return (
-    <div style={{ height: "100%", display: "flex", alignItems: "center", padding: "0 8px", gap: 5, background: "white" }}>
+    <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 8px", gap: 5, background: "white" }}>
       {isGroupSlot && slot.seed > 0 && slot.seed <= 8 && (
         <div style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 800, background: "#C9A84C", color: "#1A3318" }}>
           {slot.seed}
@@ -415,9 +415,15 @@ function WimbledonBracket({
   const actualRounds = Math.max(...matches.map(m => m.round)) + 1;
   const CARD_H = 76, CARD_W = 210, GAP_X = 44, BASE_GAP_Y = 8;
 
-  const roundMatches: BracketMatch[][] = Array.from({ length: actualRounds }, (_, r) =>
-    matches.filter(m => m.round === r && !(m.slot1.isBye && m.slot2.isBye))
-  );
+  // R0: only real-vs-real matches (bye teams already appear as resolved slots in R1)
+  // R1+: all matches (no BYE-vs-BYE phantom)
+  const roundMatches: BracketMatch[][] = Array.from({ length: actualRounds }, (_, r) => {
+    if (r === 0) {
+      // Only show real matches — bye teams are already in R1 slots directly
+      return matches.filter(m => m.round === 0 && !m.slot1.isBye && !m.slot2.isBye);
+    }
+    return matches.filter(m => m.round === r && !(m.slot1.isBye && m.slot2.isBye));
+  });
 
   // Y-centers: R0 stacked, R1+ = midpoint of two feeder centers
   const matchCenter: Record<string, number> = {};
@@ -459,9 +465,9 @@ function WimbledonBracket({
                     )}
                   </svg>
                 )}
-                <div style={{ position: "absolute", left: x, top: y, width: CARD_W, height: CARD_H, borderRadius: 8, overflow: "hidden", border: isFinal ? "2px solid #C9A84C" : "1px solid #E8E0D0", boxShadow: isFinal ? "0 4px 20px rgba(201,168,76,0.25)" : "0 1px 4px rgba(0,0,0,0.07)", background: "white" }}>
+                <div style={{ position: "absolute", left: x, top: y, width: CARD_W, height: CARD_H, borderRadius: 8, overflow: "hidden", border: isFinal ? "2px solid #C9A84C" : "1px solid #E8E0D0", boxShadow: isFinal ? "0 4px 20px rgba(201,168,76,0.25)" : "0 1px 4px rgba(0,0,0,0.07)", background: "white", display: "flex", flexDirection: "column" }}>
                   <MatchSlot slot={match.slot1} groupStandings={groupStandings} />
-                  <div style={{ height: 1, background: "#E8E0D0" }} />
+                  <div style={{ height: 1, flexShrink: 0, background: "#E8E0D0" }} />
                   <MatchSlot slot={match.slot2} groupStandings={groupStandings} />
                 </div>
               </div>
