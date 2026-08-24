@@ -2,31 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, Camera, ChevronRight, Activity, Clock, CheckCircle, Zap, Shield } from "lucide-react";
+import { ChevronRight, Activity, Clock, CheckCircle, Zap } from "lucide-react";
 import { getAllMatchIds, getMatch, StoredMatch } from "@/lib/match-store";
-import { getTournament } from "@/lib/store";
-
-// ── Umpire Profile Store ──────────────────────────────────────────────────────
-
-interface UmpireProfile {
-  name: string;
-  photo?: string;
-  phone?: string;
-  badge?: string;
-}
-
-function getProfile(): UmpireProfile | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("courtroom_umpire_profile");
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
-}
-
-function saveProfile(p: UmpireProfile) {
-  localStorage.setItem("courtroom_umpire_profile", JSON.stringify(p));
-  localStorage.setItem("courtroom_umpire_name", p.name);
-}
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -211,79 +188,19 @@ function CourtSection({ court, matches, onMatchClick }: {
 
 export default function UmpireHomePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<UmpireProfile | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [draftName, setDraftName] = useState("");
-  const [draftPhone, setDraftPhone] = useState("");
-  const [draftBadge, setDraftBadge] = useState("");
-  const [draftPhoto, setDraftPhoto] = useState<string | undefined>(undefined);
-  const [myMatches, setMyMatches] = useState<StoredMatch[]>([]);
   const [allMatches, setAllMatches] = useState<StoredMatch[]>([]);
-  const [tournamentNames, setTournamentNames] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<"mine" | "all">("mine");
   const [selectedCourt, setSelectedCourt] = useState<string>("all");
 
   useEffect(() => {
-    const p = getProfile();
-    if (p) {
-      setProfile(p);
-      loadMatches(p.name);
-    } else {
-      setEditing(true);
-    }
-  }, []);
-
-  function loadMatches(name: string) {
     const ids = getAllMatchIds();
     const all: StoredMatch[] = [];
-    const tNames: Record<string, string> = {};
     for (const id of ids) {
       const m = getMatch(id);
-      if (m) {
-        all.push(m);
-        if (m.state.tournamentId && !tNames[m.state.tournamentId]) {
-          const t = getTournament(m.state.tournamentId);
-          if (t) tNames[m.state.tournamentId] = t.name;
-        }
-      }
+      if (m) all.push(m);
     }
     all.sort((a, b) => statusOrder(a.state.status) - statusOrder(b.state.status));
     setAllMatches(all);
-    setTournamentNames(tNames);
-    setMyMatches(all.filter(m =>
-      !m.state.umpireName || m.state.umpireName.toLowerCase() === name.toLowerCase()
-    ));
-  }
-
-  function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setDraftPhoto(ev.target?.result as string);
-    reader.readAsDataURL(file);
-  }
-
-  function startEdit() {
-    setDraftName(profile?.name ?? "");
-    setDraftPhone(profile?.phone ?? "");
-    setDraftBadge(profile?.badge ?? "");
-    setDraftPhoto(profile?.photo);
-    setEditing(true);
-  }
-
-  function saveAndContinue() {
-    if (!draftName.trim()) return;
-    const p: UmpireProfile = {
-      name: draftName.trim(),
-      phone: draftPhone.trim() || undefined,
-      badge: draftBadge.trim() || undefined,
-      photo: draftPhoto,
-    };
-    saveProfile(p);
-    setProfile(p);
-    setEditing(false);
-    loadMatches(p.name);
-  }
+  }, []);
 
   function groupByCourt(matches: StoredMatch[]): { court: string; matches: StoredMatch[] }[] {
     const map = new Map<string, StoredMatch[]>();
@@ -301,258 +218,67 @@ export default function UmpireHomePage() {
     return courts.map(c => ({ court: c, matches: map.get(c)! }));
   }
 
-  const displayMatches = activeTab === "mine" ? myMatches : allMatches;
-  const courtGroups = groupByCourt(displayMatches);
+  const courtGroups = groupByCourt(allMatches);
+  const liveCount = allMatches.filter(isLive).length;
 
-  const primaryTournamentId = allMatches[0]?.state.tournamentId;
-  const primaryTournamentName = primaryTournamentId ? tournamentNames[primaryTournamentId] : null;
-
-  const liveCount = displayMatches.filter(isLive).length;
-  const readyCount = displayMatches.filter(m => m.state.status === "READY" || m.state.status === "SCHEDULED").length;
-  const doneCount = displayMatches.filter(isDone).length;
-
-  // ── Profile Setup Screen ──────────────────────────────────────────────────────
-  if (editing) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
-        style={{ background: "linear-gradient(160deg, #0A1A0A 0%, #0F2A0F 50%, #0A1A0A 100%)" }}>
-        <div className="w-full max-w-sm">
-          {/* Logo / brand */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
-              style={{ background: "rgba(212,224,74,0.1)", border: "1px solid rgba(212,224,74,0.2)" }}>
-              <Shield size={26} style={{ color: "#D4E04A" }} />
-            </div>
-            <div className="text-[#D4E04A] text-xs font-bold uppercase tracking-widest mb-1">Courtroom</div>
-            <h1 className="text-white text-2xl font-bold">{profile ? "Edit Profile" : "Umpire Setup"}</h1>
-            <p className="text-white/40 text-sm mt-1">Your name appears on all match records</p>
-          </div>
-
-          {/* Photo */}
-          <div className="flex flex-col items-center mb-6">
-            <label className="cursor-pointer group relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center"
-                style={{ background: "rgba(255,255,255,0.06)", border: "2px dashed rgba(212,224,74,0.25)" }}>
-                {draftPhoto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={draftPhoto} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <User size={30} style={{ color: "rgba(212,224,74,0.35)" }} />
-                )}
-              </div>
-              <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ background: "#D4E04A" }}>
-                <Camera size={11} style={{ color: "#0A1A0A" }} />
-              </div>
-              <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-            </label>
-            <div className="text-white/25 text-xs mt-2">Tap to add photo</div>
-          </div>
-
-          <div className="space-y-3 mb-6">
-            <div>
-              <label className="text-white/40 text-xs font-semibold uppercase tracking-wide block mb-1.5">Full Name *</label>
-              <input value={draftName} onChange={e => setDraftName(e.target.value)}
-                placeholder="e.g. Sanjay Kumar" autoFocus
-                className="w-full px-4 py-3.5 rounded-2xl text-white text-base focus:outline-none"
-                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }} />
-            </div>
-            <div>
-              <label className="text-white/40 text-xs font-semibold uppercase tracking-wide block mb-1.5">Phone (optional)</label>
-              <input value={draftPhone} onChange={e => setDraftPhone(e.target.value)}
-                placeholder="+91 98765 43210" type="tel"
-                className="w-full px-4 py-3.5 rounded-2xl text-white text-sm focus:outline-none"
-                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }} />
-            </div>
-            <div>
-              <label className="text-white/40 text-xs font-semibold uppercase tracking-wide block mb-1.5">Badge / Title (optional)</label>
-              <input value={draftBadge} onChange={e => setDraftBadge(e.target.value)}
-                placeholder="e.g. Senior Umpire"
-                className="w-full px-4 py-3.5 rounded-2xl text-white text-sm focus:outline-none"
-                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)" }} />
-            </div>
-          </div>
-
-          <button onClick={saveAndContinue} disabled={!draftName.trim()}
-            className="w-full py-4 rounded-2xl font-bold text-lg disabled:opacity-40 transition-all active:scale-95"
-            style={{ background: "#D4E04A", color: "#0A1A0A" }}>
-            {profile ? "Save Changes" : "Start Umpiring →"}
-          </button>
-          {profile && (
-            <button onClick={() => setEditing(false)} className="w-full mt-3 py-3 text-sm text-white/30 hover:text-white/50">
-              Cancel
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ── Main Dashboard ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen pb-10"
-      style={{ background: "linear-gradient(160deg, #0A1A0A 0%, #0D200D 60%, #0A1A0A 100%)" }}>
-
+    <div className="min-h-screen pb-10" style={{ background: "#0A1A0A" }}>
       {/* ── Header ── */}
-      <div style={{ background: "linear-gradient(180deg, #0A1A0A 0%, rgba(10,26,10,0) 100%)" }}>
-        <div className="px-4 pt-6 pb-4">
-          {/* Tournament name */}
-          {primaryTournamentName && (
-            <div className="text-center mb-4">
-              <div className="text-[#D4E04A]/40 text-[10px] font-bold uppercase tracking-widest mb-0.5">Tournament</div>
-              <div className="text-white font-bold text-sm">{primaryTournamentName}</div>
-            </div>
-          )}
-
-          {/* Profile row */}
-          <div className="flex items-center gap-3 mb-5">
-            <button onClick={startEdit} className="relative flex-shrink-0">
-              <div className="w-11 h-11 rounded-full overflow-hidden"
-                style={{ border: "2px solid rgba(212,224,74,0.3)" }}>
-                {profile?.photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.photo} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"
-                    style={{ background: "rgba(212,224,74,0.08)" }}>
-                    <User size={20} style={{ color: "rgba(212,224,74,0.5)" }} />
-                  </div>
-                )}
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
-                style={{ background: "#D4E04A" }}>
-                <Camera size={8} style={{ color: "#0A1A0A" }} />
-              </div>
-            </button>
-            <div className="flex-1 min-w-0">
-              <div className="text-white/30 text-[10px] font-semibold uppercase tracking-widest">Umpire</div>
-              <div className="text-white text-base font-bold truncate">{profile?.name}</div>
-              {profile?.badge && (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold mt-0.5"
-                  style={{ background: "rgba(212,224,74,0.08)", color: "#D4E04A", border: "1px solid rgba(212,224,74,0.15)" }}>
-                  ✦ {profile.badge}
-                </div>
-              )}
-            </div>
-            <button onClick={startEdit}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.07)" }}>
-              Edit
-            </button>
-          </div>
-
-          {/* Stats row — 3 colored cards */}
-          <div className="grid grid-cols-3 gap-2 mb-5">
-            <div className="rounded-2xl p-3 text-center"
-              style={{ background: liveCount > 0 ? "rgba(212,224,74,0.08)" : "rgba(255,255,255,0.04)", border: liveCount > 0 ? "1px solid rgba(212,224,74,0.2)" : "1px solid rgba(255,255,255,0.06)" }}>
-              <div className="flex items-center justify-center gap-1 mb-0.5">
-                {liveCount > 0 && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
-                <div className="text-2xl font-black" style={{ color: liveCount > 0 ? "#D4E04A" : "rgba(255,255,255,0.3)" }}>{liveCount}</div>
-              </div>
-              <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: liveCount > 0 ? "rgba(212,224,74,0.6)" : "rgba(255,255,255,0.2)" }}>Live</div>
-            </div>
-            <div className="rounded-2xl p-3 text-center"
-              style={{ background: "rgba(147,197,253,0.06)", border: "1px solid rgba(147,197,253,0.12)" }}>
-              <div className="text-2xl font-black mb-0.5" style={{ color: readyCount > 0 ? "#93C5FD" : "rgba(255,255,255,0.3)" }}>{readyCount}</div>
-              <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "rgba(147,197,253,0.5)" }}>Ready</div>
-            </div>
-            <div className="rounded-2xl p-3 text-center"
-              style={{ background: "rgba(110,231,183,0.06)", border: "1px solid rgba(110,231,183,0.12)" }}>
-              <div className="text-2xl font-black mb-0.5" style={{ color: doneCount > 0 ? "#6EE7B7" : "rgba(255,255,255,0.3)" }}>{doneCount}</div>
-              <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "rgba(110,231,183,0.5)" }}>Done</div>
+      <div className="sticky top-0 z-10 px-4 pt-4 pb-3"
+        style={{ background: "#0A1A0A", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-white text-xl font-bold">Umpire Console</h1>
+            <div className="text-white/30 text-xs mt-0.5">
+              {liveCount > 0
+                ? <span style={{ color: "#D4E04A" }}>● {liveCount} live · {allMatches.length} total</span>
+                : `${allMatches.length} match${allMatches.length !== 1 ? "es" : ""}`}
             </div>
           </div>
-
-          {/* Tabs */}
-          <div className="flex gap-1 p-1 rounded-2xl mb-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            {[
-              { key: "mine" as const, label: "My Matches", count: myMatches.length },
-              { key: "all" as const, label: "All Matches", count: allMatches.length },
-            ].map(tab => (
-              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
-                style={activeTab === tab.key
-                  ? { background: "#D4E04A", color: "#0A1A0A" }
-                  : { color: "rgba(255,255,255,0.35)" }}>
-                {tab.label}
-                {tab.count > 0 && (
-                  <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full"
-                    style={{
-                      background: activeTab === tab.key ? "rgba(10,26,10,0.2)" : "rgba(255,255,255,0.08)",
-                      color: activeTab === tab.key ? "#0A1A0A" : "rgba(255,255,255,0.3)",
-                    }}>
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Court filter — elegant pill buttons */}
-          {courtGroups.length > 1 && (
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setSelectedCourt("all")}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
-                style={selectedCourt === "all"
-                  ? { background: "rgba(255,255,255,0.12)", color: "white", border: "1px solid rgba(255,255,255,0.2)" }
-                  : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                All
-              </button>
-              {courtGroups.map(({ court, matches: cm }) => {
-                const hasLive = cm.some(isLive);
-                const active = selectedCourt === court;
-                return (
-                  <button
-                    key={court}
-                    onClick={() => setSelectedCourt(court)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
-                    style={active
-                      ? { background: hasLive ? "rgba(212,224,74,0.2)" : "rgba(255,255,255,0.12)", color: hasLive ? "#D4E04A" : "white", border: `1px solid ${hasLive ? "rgba(212,224,74,0.4)" : "rgba(255,255,255,0.2)"}` }
-                      : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                    {hasLive && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse flex-shrink-0" />}
-                    {court}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
+        {courtGroups.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+            <button onClick={() => setSelectedCourt("all")}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex-shrink-0"
+              style={selectedCourt === "all"
+                ? { background: "rgba(255,255,255,0.12)", color: "white", border: "1px solid rgba(255,255,255,0.2)" }
+                : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              All
+            </button>
+            {courtGroups.map(({ court, matches: cm }) => {
+              const hasLive = cm.some(isLive);
+              const active = selectedCourt === court;
+              return (
+                <button key={court} onClick={() => setSelectedCourt(court)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 flex-shrink-0"
+                  style={active
+                    ? { background: hasLive ? "rgba(212,224,74,0.2)" : "rgba(255,255,255,0.12)", color: hasLive ? "#D4E04A" : "white", border: `1px solid ${hasLive ? "rgba(212,224,74,0.4)" : "rgba(255,255,255,0.2)"}` }
+                    : { background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  {hasLive && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse flex-shrink-0" />}
+                  {court}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
-
       {/* ── Match List ── */}
-      <div className="px-4 pt-2">
-        {displayMatches.length === 0 ? (
+      <div className="px-4 pt-4">
+        {allMatches.length === 0 ? (
           <div className="rounded-2xl p-10 text-center mt-4"
             style={{ background: "rgba(255,255,255,0.03)", border: "1px dashed rgba(255,255,255,0.07)" }}>
             <Activity size={28} style={{ color: "rgba(212,224,74,0.2)", margin: "0 auto 10px" }} />
-            <div className="text-white/25 text-sm">
-              {activeTab === "mine" ? "No matches assigned to you yet" : "No matches scheduled yet"}
-            </div>
-            <div className="text-white/15 text-xs mt-1">
-              {activeTab === "mine" ? "Admin assigns umpires when scheduling" : "Create matches from the admin panel"}
-            </div>
-            {activeTab === "mine" && (
-              <button onClick={() => setActiveTab("all")}
-                className="mt-4 px-4 py-2 rounded-xl text-xs font-semibold"
-                style={{ background: "rgba(212,224,74,0.08)", color: "#D4E04A", border: "1px solid rgba(212,224,74,0.15)" }}>
-                Browse all matches
-              </button>
-            )}
+            <div className="text-white/25 text-sm">No matches scheduled yet</div>
+            <div className="text-white/15 text-xs mt-1">Create matches from the admin panel</div>
           </div>
         ) : (
           (selectedCourt === "all" ? courtGroups : courtGroups.filter(g => g.court === selectedCourt))
             .map(({ court, matches }) => (
-              <CourtSection
-                key={court}
-                court={court}
-                matches={matches}
-                onMatchClick={(id) => router.push(`/umpire/${id}`)}
-              />
+              <CourtSection key={court} court={court} matches={matches}
+                onMatchClick={(id) => router.push(`/umpire/${id}`)} />
             ))
         )}
       </div>
-
       {/* ── Quick Actions ── */}
       <div className="px-4 mt-4">
         <div className="text-white/20 text-[10px] font-bold uppercase tracking-widest mb-2">Quick Actions</div>
