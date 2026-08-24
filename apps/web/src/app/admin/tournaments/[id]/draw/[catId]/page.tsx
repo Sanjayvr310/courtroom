@@ -410,17 +410,16 @@ function WimbledonBracket({
     rounds[m.round].push(m);
   }
 
-  // Byes are now collapsed by buildBracket — all matches are real (2 real teams).
-  // totalRounds is derived from actual match data, not the raw bracket size.
+  // Build round lists — filter only phantom BYE-vs-BYE (both slots BYE, padding)
+  // All real matches including "team vs BYE" are shown as cards
   const actualRounds = Math.max(...matches.map(m => m.round)) + 1;
   const CARD_H = 76, CARD_W = 210, GAP_X = 44, BASE_GAP_Y = 8;
 
-  // Build per-round match lists (all matches are real — no BYE-vs-BYE to filter)
   const roundMatches: BracketMatch[][] = Array.from({ length: actualRounds }, (_, r) =>
-    matches.filter(m => m.round === r)
+    matches.filter(m => m.round === r && !(m.slot1.isBye && m.slot2.isBye))
   );
 
-  // Compute y-centers: R0 stacked sequentially, R1+ = midpoint of two feeders
+  // Y-centers: R0 stacked, R1+ = midpoint of two feeder centers
   const matchCenter: Record<string, number> = {};
   let curY = 28;
   for (const m of roundMatches[0] ?? []) {

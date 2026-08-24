@@ -120,7 +120,7 @@ function WimbledonBracket({
   const CARD_H = 76, CARD_W = 210, GAP_X = 44, BASE_GAP_Y = 8;
 
   const roundMatches: BracketMatch[][] = Array.from({ length: actualRounds }, (_, r) =>
-    matches.filter(m => m.round === r)
+    matches.filter(m => m.round === r && !(m.slot1.isBye && m.slot2.isBye))
   );
   const mc: Record<string, number> = {};
   let cy = 28;
