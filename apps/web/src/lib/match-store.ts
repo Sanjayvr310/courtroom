@@ -823,8 +823,13 @@ export function applyPoint(
   const scoringTeam = state.servingTeam!;
   current[scoringTeam] += 1;
 
-  // After scoring, isFirstServerOfGame is no longer true
+  // After scoring, isFirstServerOfGame is cleared.
+  // IMPORTANT: if this server WAS the "first server of game" (0-0-2 rule), they keep
+  // serving but should be treated as serverNumber=2 / servingPlayerIndex=1 so that
+  // ANY future side-out goes directly to the other team (not their partner).
   const newIsFirstServerOfGame = false;
+  const newServingPlayerIndex: 0 | 1 = state.isFirstServerOfGame ? 1 : (state.servingPlayerIndex ?? 0);
+  const newServerNumber: 1 | 2 = state.isFirstServerOfGame ? 2 : (state.serverNumber ?? 1);
 
   // Server score updates (serving team's new score)
   const newServerScore = scoringTeam === "team1" ? current.team1 : current.team2;
@@ -864,11 +869,11 @@ export function applyPoint(
     team2GamesWon: t2GamesWon,
     status: newStatus,
     winnerId,
-    // Serving team stays the same, same player
+    // Serving team stays the same, same player keeps serving
     servingTeam: state.servingTeam,
     servingPlayer: state.servingPlayer,
-    servingPlayerIndex: state.servingPlayerIndex,
-    serverNumber: state.serverNumber,
+    servingPlayerIndex: newServingPlayerIndex,
+    serverNumber: newServerNumber,
     isFirstServerOfGame: newIsFirstServerOfGame,
     serverScore: newServerScore,
     completedAt: newStatus === "MATCH_COMPLETED" ? now : undefined,
@@ -896,8 +901,8 @@ export function applyPoint(
       winnerId: newState.winnerId,
       servingTeam: newState.servingTeam,
       servingPlayer: newState.servingPlayer,
-      servingPlayerIndex: newState.servingPlayerIndex,
-      serverNumber: newState.serverNumber,
+      servingPlayerIndex: newServingPlayerIndex,
+      serverNumber: newServerNumber,
     },
     metadata: { team: scoringTeam, gameNumber: state.currentGame + 1, action: "POINT" },
   };

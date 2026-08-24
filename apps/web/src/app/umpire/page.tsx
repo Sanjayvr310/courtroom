@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Activity, Clock, CheckCircle, Zap } from "lucide-react";
+import { ChevronRight, Activity, CheckCircle, Zap } from "lucide-react";
 import { getAllMatchIds, getMatch, StoredMatch } from "@/lib/match-store";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
@@ -282,22 +282,15 @@ export default function UmpireHomePage() {
       {/* ── Quick Actions ── */}
       <div className="px-4 mt-4">
         <div className="text-white/20 text-[10px] font-bold uppercase tracking-widest mb-2">Quick Actions</div>
-        <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => router.push("/umpire/new")}
-            className="rounded-2xl p-4 flex flex-col items-start gap-2 active:scale-95 transition-all"
-            style={{ background: "rgba(147,197,253,0.06)", border: "1px solid rgba(147,197,253,0.12)" }}>
-            <Clock size={18} style={{ color: "#93C5FD" }} />
-            <div className="text-white text-sm font-bold">New Match</div>
-            <div className="text-white/25 text-xs">Create manually</div>
-          </button>
-          <button onClick={() => router.push("/live")}
-            className="rounded-2xl p-4 flex flex-col items-start gap-2 active:scale-95 transition-all"
-            style={{ background: "rgba(212,224,74,0.06)", border: "1px solid rgba(212,224,74,0.12)" }}>
-            <Zap size={18} style={{ color: "#D4E04A" }} />
-            <div className="text-white text-sm font-bold">Live Scores</div>
-            <div className="text-white/25 text-xs">Public view</div>
-          </button>
-        </div>
+        <button onClick={() => router.push("/live")}
+          className="w-full rounded-2xl p-4 flex items-center gap-3 active:scale-95 transition-all"
+          style={{ background: "rgba(212,224,74,0.06)", border: "1px solid rgba(212,224,74,0.12)" }}>
+          <Zap size={18} style={{ color: "#D4E04A" }} />
+          <div>
+            <div className="text-white text-sm font-bold text-left">Live Scores</div>
+            <div className="text-white/25 text-xs text-left">Public scoreboard view</div>
+          </div>
+        </button>
       </div>
     </div>
   );

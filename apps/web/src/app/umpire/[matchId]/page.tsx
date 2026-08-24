@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   RotateCcw, Clock, AlertCircle, ChevronLeft, Pause, Play,
-  Flag, AlertTriangle, CheckCircle, Activity, ChevronDown, ChevronUp, Menu, X,
+  Flag, AlertTriangle, CheckCircle, Activity, ChevronDown, ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -608,7 +608,7 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
   const [showAudit, setShowAudit] = useState(false);
   const [showServingSelector, setShowServingSelector] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
-  const [showPanel, setShowPanel] = useState(false);
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const redirectRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -754,11 +754,11 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
 
       {/* ── TOP BAR ── */}
       <div className="flex items-center justify-between px-4 pt-5 pb-3">
-        <button onClick={() => setShowPanel(true)}
+        <Link href="/umpire"
           className="w-9 h-9 flex items-center justify-center rounded-xl active:scale-95 transition-all"
           style={{ background: "rgba(255,255,255,0.07)" }}>
-          <Menu size={18} style={{ color: "rgba(255,255,255,0.55)" }} />
-        </button>
+          <ChevronLeft size={18} style={{ color: "rgba(255,255,255,0.55)" }} />
+        </Link>
         <div className="text-center">
           <div className="text-white/55 text-[11px] font-semibold uppercase tracking-widest">{state.court || "Match"}</div>
           {state.groupName && <div className="text-white/25 text-[10px] mt-0.5">{state.groupName}</div>}
@@ -769,91 +769,6 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
         </div>
       </div>
 
-      {/* ── SIDE PANEL ── */}
-      {showPanel && (
-        <div className="fixed inset-0 z-40 flex" onClick={() => setShowPanel(false)}>
-          <div className="w-72 h-full overflow-y-auto flex flex-col"
-            style={{ background: "#0D200E", borderRight: "1px solid rgba(255,255,255,0.07)" }}
-            onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              <div>
-                <div className="text-white font-bold text-sm">{state.court || "Console"}</div>
-                {state.groupName && <div className="text-white/30 text-xs">{state.groupName}</div>}
-              </div>
-              <button onClick={() => setShowPanel(false)} className="w-8 h-8 flex items-center justify-center rounded-lg" style={{ background: "rgba(255,255,255,0.06)" }}>
-                <X size={15} style={{ color: "rgba(255,255,255,0.4)" }} />
-              </button>
-            </div>
-            <div className="flex-1 px-4 py-4 space-y-5">
-              <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <Clock size={16} style={{ color: "rgba(255,255,255,0.3)" }} />
-                <div>
-                  <div className="text-[10px] text-white/25 uppercase tracking-wide">Match Time</div>
-                  <div className="text-white font-mono font-bold text-xl tabular-nums">{formatTime(elapsedSeconds)}</div>
-                </div>
-              </div>
-              {(isLive || isPaused) && (
-                <div className="space-y-2">
-                  <div className="text-[10px] text-white/25 uppercase tracking-wide px-1">Controls</div>
-                  <button disabled={!canUndoPoint}
-                    onClick={() => { if (!canUndoPoint) return; setConfirm({ title: "Undo Last Point?", message: "Reverses the last scored point.", confirmLabel: "Undo", onConfirm: () => { update(applyUndoLastPoint(stored, umpireName)); setShowPanel(false); } }); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl disabled:opacity-25 active:scale-95 transition-all"
-                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                    <RotateCcw size={15} style={{ color: "rgba(255,255,255,0.4)" }} />
-                    <span className="text-sm font-medium text-white/60">Undo Last Point</span>
-                  </button>
-                  <button onClick={() => { if (isLive) update(applyPauseMatch(stored, umpireName)); else update(applyResumeMatch(stored, umpireName)); setShowPanel(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl active:scale-95 transition-all"
-                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                    {isLive ? <Pause size={15} style={{ color: "#FB923C" }} /> : <Play size={15} style={{ color: "#D4E04A" }} />}
-                    <span className="text-sm font-medium text-white/60">{isLive ? "Pause Match" : "Resume Match"}</span>
-                  </button>
-                  <div className="text-[10px] text-white/25 uppercase tracking-wide px-1 pt-2">Timeouts</div>
-                  {([{ team: "team1" as const, name: t1Parts[0], used: state.timeouts.team1Used }, { team: "team2" as const, name: t2Parts[0], used: state.timeouts.team2Used }]).map(({ team, name, used }) => {
-                    const rem = state.rules.maxTimeoutsPerTeam - used;
-                    return (
-                      <button key={team} disabled={rem <= 0}
-                        onClick={() => { if (!rem) return; setConfirm({ title: `T/O — ${name}`, message: `${rem} remaining.`, confirmLabel: "Call Timeout", onConfirm: () => { update(applyTimeout(stored, team, umpireName)); setShowPanel(false); } }); }}
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl disabled:opacity-25 active:scale-95 transition-all"
-                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                        <div className="flex items-center gap-3">
-                          <AlertCircle size={15} style={{ color: rem > 0 ? "#93C5FD" : "rgba(255,255,255,0.2)" }} />
-                          <span className="text-sm font-medium text-white/60">{name}</span>
-                        </div>
-                        <span className="text-xs text-white/25">{rem} left</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              {(isLive || isPaused || isGameBreak) && (
-                <div className="space-y-2">
-                  <div className="text-[10px] text-white/25 uppercase tracking-wide px-1">Danger Zone</div>
-                  <button onClick={() => { setConfirm({ title: "Forfeit", message: `${t1Parts[0]} forfeits?`, confirmLabel: "Forfeit", danger: true, onConfirm: () => { update(applyForfeit(stored, "team1", umpireName)); setShowPanel(false); } }); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl active:scale-95 transition-all"
-                    style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.12)" }}>
-                    <Flag size={15} style={{ color: "#EF4444" }} />
-                    <span className="text-sm font-medium" style={{ color: "#EF4444" }}>Forfeit</span>
-                  </button>
-                  <button onClick={() => { setConfirm({ title: "Dispute", message: "Describe the issue.", confirmLabel: "Mark Disputed", danger: true, requireReason: true, onConfirm: (reason) => { update(applyDispute(stored, umpireName, reason ?? "Disputed")); setShowPanel(false); } }); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl active:scale-95 transition-all"
-                    style={{ background: "rgba(251,146,60,0.06)", border: "1px solid rgba(251,146,60,0.12)" }}>
-                    <AlertTriangle size={15} style={{ color: "#FB923C" }} />
-                    <span className="text-sm font-medium" style={{ color: "#FB923C" }}>Dispute</span>
-                  </button>
-                </div>
-              )}
-              <button onClick={() => setShowAudit(!showAudit)} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <Activity size={14} style={{ color: "rgba(255,255,255,0.2)" }} />
-                <span className="text-sm text-white/25">{showAudit ? "Hide" : "Show"} Audit ({events.length})</span>
-              </button>
-              {showAudit && <div className="mt-1"><AuditLog events={events} state={state} /></div>}
-              <Link href="/umpire" className="block text-center py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.3)", border: "1px solid rgba(255,255,255,0.06)" }}>← Back to Console</Link>
-            </div>
-          </div>
-          <div className="flex-1" style={{ background: "rgba(0,0,0,0.5)" }} />
-        </div>
-      )}
 
       {/* ── STATUS + GAME PILLS ── */}
       <div className="flex items-center justify-center gap-2 px-4 mb-3">
@@ -1098,7 +1013,56 @@ export default function UmpireScoringPage({ params }: { params: { matchId: strin
         </div>
       )}
 
-      {/* Controls moved to ≡ side panel */}
+      {/* ── INLINE CONTROLS ── */}
+      {(isLive || isPaused) && (
+        <div className="px-3 mb-3 space-y-2">
+          <div className="text-[10px] text-white/20 uppercase tracking-widest px-1 pt-1">Controls</div>
+          <div className="flex gap-2">
+            <button disabled={!canUndoPoint}
+              onClick={() => { if (!canUndoPoint) return; setConfirm({ title: "Undo Last Point?", message: "Reverses the last scored point.", confirmLabel: "Undo", onConfirm: () => update(applyUndoLastPoint(stored, umpireName)) }); }}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl disabled:opacity-25 active:scale-95 transition-all text-xs font-semibold"
+              style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <RotateCcw size={13} /> Undo
+            </button>
+            <button onClick={() => { if (isLive) update(applyPauseMatch(stored, umpireName)); else update(applyResumeMatch(stored, umpireName)); }}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl active:scale-95 transition-all text-xs font-semibold"
+              style={{ background: "rgba(255,255,255,0.06)", color: isLive ? "#FB923C" : "#D4E04A", border: "1px solid rgba(255,255,255,0.08)" }}>
+              {isLive ? <><Pause size={13} /> Pause</> : <><Play size={13} /> Resume</>}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            {([{ team: "team1" as const, name: t1Parts[0], used: state.timeouts.team1Used }, { team: "team2" as const, name: t2Parts[0], used: state.timeouts.team2Used }]).map(({ team, name, used }) => {
+              const rem = state.rules.maxTimeoutsPerTeam - used;
+              return (
+                <button key={team} disabled={rem <= 0}
+                  onClick={() => { if (!rem) return; setConfirm({ title: `T/O — ${name}`, message: `${rem} remaining.`, confirmLabel: "Call Timeout", onConfirm: () => update(applyTimeout(stored, team, umpireName)) }); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl disabled:opacity-25 active:scale-95 transition-all text-xs font-semibold"
+                  style={{ background: "rgba(147,197,253,0.06)", color: rem > 0 ? "#93C5FD" : "rgba(255,255,255,0.2)", border: "1px solid rgba(147,197,253,0.1)" }}>
+                  <AlertCircle size={12} /> T/O {name} <span className="opacity-50">({rem})</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => { setConfirm({ title: "Forfeit", message: `${t1Parts[0]} forfeits?`, confirmLabel: "Forfeit", danger: true, onConfirm: () => update(applyForfeit(stored, "team1", umpireName)) }); }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl active:scale-95 transition-all text-xs font-semibold"
+              style={{ background: "rgba(239,68,68,0.06)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.12)" }}>
+              <Flag size={12} /> Forfeit
+            </button>
+            <button onClick={() => { setConfirm({ title: "Dispute", message: "Describe the issue.", confirmLabel: "Mark Disputed", danger: true, requireReason: true, onConfirm: (reason) => update(applyDispute(stored, umpireName, reason ?? "Disputed")) }); }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl active:scale-95 transition-all text-xs font-semibold"
+              style={{ background: "rgba(251,146,60,0.06)", color: "#FB923C", border: "1px solid rgba(251,146,60,0.12)" }}>
+              <AlertTriangle size={12} /> Dispute
+            </button>
+          </div>
+          <button onClick={() => setShowAudit(!showAudit)}
+            className="w-full flex items-center justify-center gap-2 py-2 text-[10px]"
+            style={{ color: "rgba(255,255,255,0.2)" }}>
+            <Activity size={11} /> {showAudit ? "Hide" : "Show"} Audit ({events.length})
+          </button>
+          {showAudit && <AuditLog events={events} state={state} />}
+        </div>
+      )}
 
       <div className="h-10" />
     </div>
