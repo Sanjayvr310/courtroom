@@ -24,12 +24,12 @@ export default function LivePage() {
     <div className="min-h-screen" style={{ background: "#F8F4EE" }}>
       {/* Header */}
       <div style={{ background: "linear-gradient(135deg, #1A3318 0%, #2D5A27 100%)" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex items-center gap-3 mb-2">
             <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
             <span className="text-red-400 text-sm font-bold tracking-widest uppercase">Live</span>
           </div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold text-white">Live Scores</h1>
+          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-white">Live Scores</h1>
           <p className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
             {ongoingTournaments.length > 0
               ? `${ongoingTournaments.length} tournament${ongoingTournaments.length > 1 ? "s" : ""} in progress`
@@ -38,9 +38,9 @@ export default function LivePage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {tournaments.length === 0 ? (
-          <div className="bg-white rounded-3xl p-20 text-center" style={{ border: "2px dashed rgba(201,168,76,0.3)" }}>
+          <div className="bg-white rounded-3xl p-10 sm:p-20 text-center" style={{ border: "2px dashed rgba(201,168,76,0.3)" }}>
             <Trophy size={48} style={{ color: "#C9A84C", margin: "0 auto 16px" }} />
             <h2 className="font-display text-2xl font-bold mb-3" style={{ color: "#1A3318" }}>No tournaments yet</h2>
             <p className="text-sm mb-6" style={{ color: "#8A8070" }}>

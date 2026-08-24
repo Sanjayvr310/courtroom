@@ -32,7 +32,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-court-cream font-body antialiased">
         <Navbar />
-        <main className="min-h-[calc(100vh-64px)]">
+        <main className="min-h-screen">
           {children}
         </main>
         <Footer />

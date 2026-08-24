@@ -336,9 +336,9 @@ function GroupStandingsTable({
           <tr style={{ borderBottom: "1px solid rgba(232,224,208,0.5)", background: "#F8F4EE" }}>
             <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>#</th>
             <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>Team</th>
-            <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>P</th>
+            <th className="hidden sm:table-cell px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>P</th>
             <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>W</th>
-            <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>L</th>
+            <th className="hidden sm:table-cell px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>L</th>
             <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>Pts</th>
           </tr>
         </thead>
@@ -357,17 +357,17 @@ function GroupStandingsTable({
                     {i + 1}
                   </span>
                 </td>
-                <td className="px-3 py-2.5">
-                  <div className="text-xs font-semibold truncate" style={{ color: "#1A3318", maxWidth: 120 }}>{t.player1}</div>
-                  {t.player2 && <div className="text-[10px] truncate" style={{ color: "#8A8070", maxWidth: 120 }}>{t.player2}</div>}
+                <td className="px-3 py-2.5 max-w-[120px] sm:max-w-none">
+                  <div className="text-xs font-semibold truncate" style={{ color: "#1A3318" }}>{t.player1}</div>
+                  {t.player2 && <div className="text-[10px] truncate" style={{ color: "#8A8070" }}>{t.player2}</div>}
                 </td>
-                <td className="px-2 py-2.5 text-center text-xs font-semibold tabular-nums" style={{ color: "#8A8070" }}>
+                <td className="hidden sm:table-cell px-2 py-2.5 text-center text-xs font-semibold tabular-nums" style={{ color: "#8A8070" }}>
                   {s ? s.played : "—"}
                 </td>
                 <td className="px-2 py-2.5 text-center text-xs font-bold tabular-nums" style={{ color: "#16A34A" }}>
                   {s ? s.won : "—"}
                 </td>
-                <td className="px-2 py-2.5 text-center text-xs font-bold tabular-nums" style={{ color: "#DC2626" }}>
+                <td className="hidden sm:table-cell px-2 py-2.5 text-center text-xs font-bold tabular-nums" style={{ color: "#DC2626" }}>
                   {s ? s.lost : "—"}
                 </td>
                 <td className="px-2 py-2.5 text-center text-xs font-bold tabular-nums" style={{ color: "#1A3318" }}>
@@ -496,17 +496,17 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   return (
     <div className="min-h-screen" style={{ background: "#F8F4EE" }}>
       {/* Hero banner */}
-      <div className="relative" style={{ background: "#1A3318", minHeight: 240 }}>
+      <div className="relative" style={{ background: "#1A3318", minHeight: 180 }}>
         {tournament.bannerImage && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={tournament.bannerImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
         )}
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <Link href="/tournaments" className="inline-flex items-center gap-1.5 text-sm mb-4 transition-colors hover:text-white" style={{ color: "rgba(255,255,255,0.4)" }}>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+          <Link href="/tournaments" className="inline-flex items-center gap-1.5 text-sm mb-3 sm:mb-4 transition-colors hover:text-white" style={{ color: "rgba(255,255,255,0.4)" }}>
             <ChevronLeft size={14} /> All Tournaments
           </Link>
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className="px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: statusCol.bg, color: statusCol.text }}>
                   {getTournamentStatusLabel(tournament.status)}
@@ -517,41 +517,41 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                   </span>
                 )}
               </div>
-              <h1 className="font-display text-3xl md:text-4xl font-bold text-white">{tournament.name}</h1>
-              <div className="flex flex-wrap items-center gap-4 mt-2">
+              <h1 className="font-display text-xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">{tournament.name}</h1>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
                 {tournament.city && (
-                  <span className="flex items-center gap-1.5 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
-                    <MapPin size={13} style={{ color: "rgba(201,168,76,0.6)" }} /> {tournament.city}{tournament.venue ? ` · ${tournament.venue}` : ""}
+                  <span className="flex items-center gap-1.5 text-xs sm:text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+                    <MapPin size={12} style={{ color: "rgba(201,168,76,0.6)" }} /> {tournament.city}{tournament.venue ? ` · ${tournament.venue}` : ""}
                   </span>
                 )}
                 {tournament.startDate && (
-                  <span className="flex items-center gap-1.5 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
-                    <Calendar size={13} style={{ color: "rgba(201,168,76,0.6)" }} /> {tournament.startDate}{tournament.endDate ? ` – ${tournament.endDate}` : ""}
+                  <span className="flex items-center gap-1.5 text-xs sm:text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+                    <Calendar size={12} style={{ color: "rgba(201,168,76,0.6)" }} /> {tournament.startDate}{tournament.endDate ? ` – ${tournament.endDate}` : ""}
                   </span>
                 )}
                 {tournament.prize && (
-                  <span className="text-sm font-bold" style={{ color: "#C9A84C" }}>{formatPrize(tournament.prize)}</span>
+                  <span className="text-xs sm:text-sm font-bold" style={{ color: "#C9A84C" }}>{formatPrize(tournament.prize)}</span>
                 )}
               </div>
             </div>
             {hasOpenRegistration && (
               <Link href={`/tournaments/${id}/register`}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02] flex-shrink-0"
+                className="inline-flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02] flex-shrink-0"
                 style={{ background: "#C9A84C", color: "#1A3318" }}>
-                <Users size={16} /> Register Now
+                <Users size={15} /> Register
               </Link>
             )}
           </div>
           {tournament.description && (
-            <p className="mt-3 text-sm max-w-2xl" style={{ color: "rgba(255,255,255,0.55)" }}>{tournament.description}</p>
+            <p className="mt-2 sm:mt-3 text-xs sm:text-sm max-w-2xl" style={{ color: "rgba(255,255,255,0.55)" }}>{tournament.description}</p>
           )}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-4 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="grid lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Main content */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 order-2 lg:order-1">
             {tournament.categories.length === 0 ? (
               <div className="bg-white rounded-2xl p-10 text-center" style={{ border: "1px solid rgba(232,224,208,0.8)" }}>
                 <Trophy size={32} style={{ color: "#C9A84C", margin: "0 auto 12px" }} />
@@ -559,14 +559,14 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
               </div>
             ) : (
               <div>
-                {/* Category tabs */}
-                <div className="flex gap-2 flex-wrap mb-6">
+                {/* Category tabs — horizontal scroll on mobile, wrap on desktop */}
+                <div className="flex gap-2 overflow-x-auto pb-1 mb-4 sm:mb-6 flex-nowrap sm:flex-wrap" style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
                   {tournament.categories.map((cat) => {
                     const catRegs = regsByCat(cat.id);
                     const approvedCount = catRegs.filter((r) => r.status === "approved").length;
                     return (
                       <button key={cat.id} onClick={() => setActiveCatId(cat.id)}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all flex-shrink-0"
                         style={activeCatId === cat.id
                           ? { background: "#1A3318", color: "white" }
                           : { background: "white", color: "#1A3318", border: "1px solid rgba(232,224,208,0.8)" }}>
@@ -730,11 +730,11 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                             })()}
                             </div>
                             <div className="bg-white rounded-3xl overflow-hidden" style={{ border: "1px solid rgba(232,224,208,0.8)" }}>
-                              <div className="px-6 py-4 flex items-center gap-3" style={{ background: "#1A3318" }}>
+                              <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3" style={{ background: "#1A3318" }}>
                                 <Trophy size={18} style={{ color: "#C9A84C" }} />
-                                <span className="font-display font-bold text-white">{activeCategory.name}</span>
+                                <span className="font-display font-bold text-white text-sm sm:text-base">{activeCategory.name}</span>
                               </div>
-                              <div className="p-6" style={{ background: "#FDFAF5" }}>
+                              <div className="p-3 sm:p-6" style={{ background: "#FDFAF5", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                                 <WimbledonBracket
                                   matches={bracketMatches}
                                   totalRounds={totalRounds}
@@ -746,7 +746,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                         )}
                       </div>
                     ) : (
-                      <div className="bg-white rounded-3xl p-16 text-center" style={{ border: "1px solid rgba(232,224,208,0.8)" }}>
+                      <div className="bg-white rounded-3xl p-8 sm:p-16 text-center" style={{ border: "1px solid rgba(232,224,208,0.8)" }}>
                         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "#F8F4EE" }}>
                           <Lock size={28} style={{ color: "#8A8070" }} />
                         </div>
@@ -769,8 +769,8 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-4">
+          {/* Sidebar — shown FIRST on mobile (register + info), second on desktop */}
+          <div className="space-y-4 order-1 lg:order-2">
             <div className="bg-white rounded-2xl p-5" style={{ border: "1px solid rgba(232,224,208,0.8)" }}>
               <h3 className="font-display font-bold mb-4" style={{ color: "#1A3318" }}>Tournament Info</h3>
               <div className="space-y-3 text-sm">

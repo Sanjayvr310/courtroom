@@ -77,7 +77,7 @@ export default function HomePage() {
     <div className="min-h-screen" style={{ background: "#FDFAF5" }}>
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden min-h-[90vh] flex items-center">
+      <section className="relative overflow-hidden min-h-[70vh] sm:min-h-[90vh] flex items-center">
         <div className="absolute inset-0 overflow-hidden" style={{ background: "#0F2010" }}>
           <Image
             src="/logo.png"
@@ -93,7 +93,7 @@ export default function HomePage() {
         <div className="absolute -top-20 -left-20 w-[400px] h-[400px] rounded-full pointer-events-none opacity-20"
           style={{ background: "radial-gradient(circle, rgba(201,168,76,0.6) 0%, transparent 65%)", filter: "blur(50px)" }} />
 
-        <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-20">
           <div className="flex flex-col items-center text-center">
             <div className="relative mb-6">
               <div className="absolute -inset-3 rounded-full" style={{ border: "1px solid rgba(201,168,76,0.25)" }} />
@@ -127,20 +127,20 @@ export default function HomePage() {
               Run tournaments. Track live scores. Crown champions. — All from one court.
             </p>
 
-            <div className="flex flex-wrap justify-center gap-3 mb-14">
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 mb-10 sm:mb-14 w-full sm:w-auto px-4 sm:px-0">
               <Link href="/tournaments"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-sm transition-all duration-200 hover:scale-[1.03] active:scale-[0.98]"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-sm transition-all duration-200 hover:scale-[1.03] active:scale-[0.98]"
                 style={{ background: "#C9A84C", color: "#0F2010", boxShadow: "0 4px 24px rgba(201,168,76,0.35)" }}>
                 Browse Tournaments <ArrowRight size={15} />
               </Link>
               <Link href="/live"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-sm transition-all duration-200 hover:scale-[1.03]"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-sm transition-all duration-200 hover:scale-[1.03]"
                 style={{ background: "rgba(220,38,38,0.15)", border: "1px solid rgba(220,38,38,0.35)", color: "#FCA5A5", backdropFilter: "blur(4px)" }}>
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 Watch Live
               </Link>
               <Link href="/admin"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-sm transition-all duration-200 hover:scale-[1.03]"
+                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl font-semibold text-sm transition-all duration-200 hover:scale-[1.03]"
                 style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.65)", backdropFilter: "blur(4px)" }}>
                 Admin Panel
               </Link>
@@ -154,8 +154,8 @@ export default function HomePage() {
 
       {/* ── Live Stats (real data from localStorage) ── */}
       {(stats.tournaments > 0 || stats.matchesPlayed > 0) && (
-        <Reveal className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 mb-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Reveal className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 sm:-mt-6 mb-8 sm:mb-12">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {[
               { label: "Tournaments", value: stats.tournaments, icon: Trophy, show: stats.tournaments > 0 },
               { label: "Live Matches", value: stats.liveMatches, icon: Zap, show: true },
@@ -177,16 +177,16 @@ export default function HomePage() {
       )}
 
       {/* ── Features ── */}
-      <section className="py-20" style={{ background: "#1A3318" }}>
+      <section className="py-12 sm:py-20" style={{ background: "#1A3318" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal>
             <div className="flex items-center gap-4 mb-3">
               <div className="h-px w-8" style={{ background: "rgba(201,168,76,0.4)" }} />
               <span className="text-[10px] font-semibold tracking-[0.25em] uppercase" style={{ color: "rgba(201,168,76,0.5)" }}>Platform</span>
             </div>
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-white mb-12">Built for the game</h2>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-8 sm:mb-12">Built for the game</h2>
           </Reveal>
-          <div className="grid md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
             {features.map((f, i) => (
               <Reveal key={f.title} delay={i * 80}>
                 <div className="rounded-2xl p-6 hover:bg-white/5 transition-colors h-full"
@@ -202,22 +202,22 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
         <Reveal>
-          <div className="rounded-3xl p-10 md:p-16 text-center"
+          <div className="rounded-3xl p-6 sm:p-10 md:p-16 text-center"
             style={{ background: "linear-gradient(135deg, #C9A84C 0%, #D4B86A 50%, #C9A84C 100%)" }}>
-            <h2 className="font-display text-3xl md:text-4xl font-bold mb-4" style={{ color: "#1A3318" }}>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4" style={{ color: "#1A3318" }}>
               Ready to run your tournament?
             </h2>
-            <p className="text-lg mb-8 max-w-xl mx-auto" style={{ color: "rgba(26,51,24,0.65)" }}>
+            <p className="text-base sm:text-lg mb-6 sm:mb-8 max-w-xl mx-auto" style={{ color: "rgba(26,51,24,0.65)" }}>
               Set up in minutes. Invite players, assign courts, and go live.
             </p>
-            <div className="flex flex-wrap justify-center gap-4">
-              <Link href="/admin" className="px-8 py-4 rounded-2xl font-bold text-lg text-white shadow-lg transition-all hover:scale-[1.02]"
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4">
+              <Link href="/admin" className="px-8 py-4 rounded-2xl font-bold text-base sm:text-lg text-white shadow-lg transition-all hover:scale-[1.02] text-center"
                 style={{ background: "#1A3318", boxShadow: "0 4px 24px rgba(26,51,24,0.3)" }}>
                 Go to Admin Panel
               </Link>
-              <Link href="/umpire" className="px-8 py-4 rounded-2xl font-bold text-lg transition-all hover:scale-[1.02]"
+              <Link href="/umpire" className="px-8 py-4 rounded-2xl font-bold text-base sm:text-lg transition-all hover:scale-[1.02] text-center"
                 style={{ border: "2px solid rgba(26,51,24,0.4)", color: "#1A3318" }}>
                 Umpire Console
               </Link>

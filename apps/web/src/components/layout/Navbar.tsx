@@ -35,6 +35,10 @@ export function Navbar() {
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
+  // Hide the entire nav on the umpire scoring screen — it has its own top bar
+  const isScoring = /^\/umpire\/[^/]+/.test(pathname ?? "");
+  if (isScoring) return null;
+
   return (
     <>
       <header className="sticky top-0 z-50 bg-[#1A3318] border-b border-white/10">

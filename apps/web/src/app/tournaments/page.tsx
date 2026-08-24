@@ -15,18 +15,18 @@ export default function TournamentsPage() {
   return (
     <div className="min-h-screen" style={{ background: "#F8F4EE" }}>
       <div style={{ background: "linear-gradient(135deg, #1A3318 0%, #2D5A27 100%)" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
           <Link href="/" className="inline-flex items-center gap-1.5 text-sm mb-4 transition-colors hover:text-white" style={{ color: "rgba(255,255,255,0.4)" }}>
             <ArrowLeft size={14} /> Home
           </Link>
-          <h1 className="font-display text-3xl md:text-4xl font-bold text-white">Tournaments</h1>
+          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-white">Tournaments</h1>
           <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>Browse all tournaments and check your draw</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         {tournaments.length === 0 ? (
-          <div className="bg-white rounded-3xl p-16 text-center" style={{ border: "1px solid rgba(232,224,208,0.8)" }}>
+          <div className="bg-white rounded-3xl p-10 sm:p-16 text-center" style={{ border: "1px solid rgba(232,224,208,0.8)" }}>
             <Trophy size={40} style={{ color: "#C9A84C", margin: "0 auto 16px" }} />
             <h2 className="font-display text-xl font-bold mb-2" style={{ color: "#1A3318" }}>No tournaments yet</h2>
             <p className="text-sm" style={{ color: "#8A8070" }}>Check back soon for upcoming events.</p>
