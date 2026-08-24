@@ -25,10 +25,12 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-court-cream text-court-green-dark;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {

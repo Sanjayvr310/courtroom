@@ -331,53 +331,56 @@ function GroupStandingsTable({
         <h3 className="font-display font-bold text-sm text-white">{group.name}</h3>
         <span className="text-[10px]" style={{ color: "rgba(201,168,76,0.7)" }}>{group.teams.length} teams</span>
       </div>
-      <table className="w-full">
-        <thead>
-          <tr style={{ borderBottom: "1px solid rgba(232,224,208,0.5)", background: "#F8F4EE" }}>
-            <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>#</th>
-            <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>Team</th>
-            <th className="hidden sm:table-cell px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>P</th>
-            <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>W</th>
-            <th className="hidden sm:table-cell px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>L</th>
-            <th className="px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>Pts</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedTeams.map((t, i) => {
-            const s = getStandingsForTeam(t);
-            const qualifies = i < qualifiersPerGroup;
-            return (
-              <tr key={t.seed} style={{
-                borderBottom: "1px solid rgba(232,224,208,0.4)",
-                background: qualifies ? "rgba(45,90,39,0.04)" : "white",
-              }}>
-                <td className="px-3 py-2.5">
-                  <span className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center"
-                    style={{ background: qualifies ? "#C9A84C" : "#F8F4EE", color: qualifies ? "#1A3318" : "#8A8070", display: "inline-flex" }}>
-                    {i + 1}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 max-w-[120px] sm:max-w-none">
-                  <div className="text-xs font-semibold truncate" style={{ color: "#1A3318" }}>{t.player1}</div>
-                  {t.player2 && <div className="text-[10px] truncate" style={{ color: "#8A8070" }}>{t.player2}</div>}
-                </td>
-                <td className="hidden sm:table-cell px-2 py-2.5 text-center text-xs font-semibold tabular-nums" style={{ color: "#8A8070" }}>
-                  {s ? s.played : "—"}
-                </td>
-                <td className="px-2 py-2.5 text-center text-xs font-bold tabular-nums" style={{ color: "#16A34A" }}>
-                  {s ? s.won : "—"}
-                </td>
-                <td className="hidden sm:table-cell px-2 py-2.5 text-center text-xs font-bold tabular-nums" style={{ color: "#DC2626" }}>
-                  {s ? s.lost : "—"}
-                </td>
-                <td className="px-2 py-2.5 text-center text-xs font-bold tabular-nums" style={{ color: "#1A3318" }}>
-                  {s ? s.points : "—"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {/* Horizontal scroll wrapper — keeps all columns visible, scrolls within the card */}
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <table style={{ minWidth: "100%", width: "max-content", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid rgba(232,224,208,0.5)", background: "#F8F4EE" }}>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>#</th>
+              <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070", minWidth: 120 }}>Team</th>
+              <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>P</th>
+              <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>W</th>
+              <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>L</th>
+              <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#8A8070" }}>Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedTeams.map((t, i) => {
+              const s = getStandingsForTeam(t);
+              const qualifies = i < qualifiersPerGroup;
+              return (
+                <tr key={t.seed} style={{
+                  borderBottom: "1px solid rgba(232,224,208,0.4)",
+                  background: qualifies ? "rgba(45,90,39,0.04)" : "white",
+                }}>
+                  <td className="px-3 py-2.5">
+                    <span className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ background: qualifies ? "#C9A84C" : "#F8F4EE", color: qualifies ? "#1A3318" : "#8A8070", display: "inline-flex" }}>
+                      {i + 1}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5" style={{ minWidth: 120, maxWidth: 180 }}>
+                    <div className="text-xs font-semibold truncate" style={{ color: "#1A3318" }}>{t.player1}</div>
+                    {t.player2 && <div className="text-[10px] truncate" style={{ color: "#8A8070" }}>{t.player2}</div>}
+                  </td>
+                  <td className="px-3 py-2.5 text-center text-xs font-semibold tabular-nums" style={{ color: "#8A8070" }}>
+                    {s ? s.played : "—"}
+                  </td>
+                  <td className="px-3 py-2.5 text-center text-xs font-bold tabular-nums" style={{ color: "#16A34A" }}>
+                    {s ? s.won : "—"}
+                  </td>
+                  <td className="px-3 py-2.5 text-center text-xs font-bold tabular-nums" style={{ color: "#DC2626" }}>
+                    {s ? s.lost : "—"}
+                  </td>
+                  <td className="px-3 py-2.5 text-center text-xs font-bold tabular-nums" style={{ color: "#1A3318" }}>
+                    {s ? s.points : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       <div className="px-4 py-1.5 text-[10px] flex items-center gap-1.5" style={{ background: "rgba(45,90,39,0.04)", color: "#8A8070" }}>
         {hasLiveData ? (
           <><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Live standings · Top {qualifiersPerGroup} advance</>
